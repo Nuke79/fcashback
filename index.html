@@ -464,7 +464,27 @@ function initTheme() {
 }
 
 // ─── Service Worker ──────────────────────────────────────────────────────────────
-if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(() => {}); }
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    // Auto-update when new version is available
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'activated') {
+          // Reload to get new version (data is in localStorage, safe)
+          window.location.reload();
+        }
+      });
+    });
+    // If there's a waiting update from previous session, activate it
+    if (reg.waiting) {
+      reg.waiting.postMessage('skipWaiting');
+    }
+    reg.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+  }).catch(() => {});
+}
 
 // ─── Embedded COIN Data ─────────────────────────────────────────────────────────
 const EMBEDDED_COINS = [
