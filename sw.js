@@ -1,20 +1,6 @@
-const CACHE_NAME = 'cashback-assistant-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/manifest.json',
-  '/icon-192.png',
-  '/coin/coin_sberbank.json',
-  '/coin/coin_psb.json',
-  '/coin/coin_vtb.json',
-  '/coin/coin_ozon.json',
-];
+const CACHE_NAME = 'cashback-assistant-v2';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
   self.skipWaiting();
 });
 
@@ -35,28 +21,17 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Return cached version, but also fetch and update cache in background
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse.clone());
-            });
-          }
-        }).catch(() => {});
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200) {
-          return networkResponse;
-        }
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
+    fetch(event.request).then((networkResponse) => {
+      if (!networkResponse || networkResponse.status !== 200) {
         return networkResponse;
+      }
+      const responseToCache = networkResponse.clone();
+      caches.open(CACHE_NAME).then((cache) => {
+        cache.put(event.request, responseToCache);
       });
+      return networkResponse;
+    }).catch(() => {
+      return caches.match(event.request);
     })
   );
 });
