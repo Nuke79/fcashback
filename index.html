@@ -712,7 +712,7 @@ function renderBanks(app) {
       html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:14px;height:14px">' + ICONS.refresh + '</span>Новый месяц</button>';
       html += '</div><div class="categories-list">';
 
-      for (const entry of bank.coinData.cashback.entries) {
+      for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
         const isSel = bank.selectedCategories.includes(entry.category);
         const entryNotes = (entry.notes || []).map(nid => notesMap[nid]).filter(Boolean);
         const entryLinks = (entry.links || []).map(lid => linksMap[lid]).filter(Boolean);
