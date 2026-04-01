@@ -332,6 +332,20 @@
     }
     .dop-custom-name { flex: 1; font-size: 14px; font-weight: 500; }
     .dop-custom-pct { font-size: 14px; font-weight: 700; color: var(--green); }
+    .dop-excl-toggle {
+      display: flex; align-items: center; gap: 4px; cursor: pointer;
+      font-size: 11px; color: var(--text-muted); white-space: nowrap;
+      padding: 3px 6px; border-radius: 4px; border: none; background: transparent;
+      font-family: var(--font); transition: all 0.15s; flex-shrink: 0;
+    }
+    .dop-excl-toggle:hover { color: var(--text-sec); background: rgba(255,255,255,0.04); }
+    .dop-excl-toggle.active { color: var(--green); }
+    .dop-excl-toggle svg { width: 13px; height: 13px; }
+    .cat-row.excluded .cat-name::after {
+      content: '∞';
+      font-size: 10px; font-weight: 700; color: var(--text-muted);
+      margin-left: 4px;
+    }
 
     /* ── Empty ── */
     .empty {
@@ -864,16 +878,24 @@ function renderDopModal() {
 
   // Render COIN categories with extra % inputs
   const catList = document.getElementById('dopCategoryList');
+  const excludeList = bank.excludeFromLimit || [];
+  const autoExclude = new Set(getAlwaysActiveCats(bank));
   let html = '';
   for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
     const extra = extras[entry.category] || 0;
     const escCat = escHtml(entry.category).replace(/'/g, "\\'");
+    const isAutoExcluded = autoExclude.has(entry.category);
+    const isManualExcluded = excludeList.includes(entry.category);
+    const isExcluded = isAutoExcluded || isManualExcluded;
     html += '<div class="dop-cat-item">';
     html += '<span class="dop-cat-name">' + escHtml(entry.category) + '</span>';
     html += '<span class="dop-cat-base">' + entry.percent + '%</span>';
     html += '<input type="number" class="dop-cat-input" value="' + (extra || '') + '" placeholder="+" min="0" step="0.1" onchange="updateExtraPercent(\'' + escCat + '\', this.value)" onfocus="this.select()">';
     html += '<span class="dop-cat-base">+</span>';
     if (extra > 0) html += '<span class="dop-cat-total">= ' + (entry.percent + extra) + '%</span>';
+    html += '<button class="dop-excl-toggle' + (isExcluded ? ' active' : '') + '" onclick="toggleExcludeFromLimit(\'' + escCat + '\')" title="Не входит в лимит">';
+    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13"/></svg>';
+    html += '</button>';
     if (extra > 0) html += '<button class="dop-cat-remove" onclick="removeExtraPercent(\'' + escCat + '\')">×</button>';
     html += '</div>';
   }
@@ -939,6 +961,19 @@ function removeCustomCat(catId) {
   renderDopModal();
 }
 
+function toggleExcludeFromLimit(category) {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank) return;
+  if (!bank.excludeFromLimit) bank.excludeFromLimit = [];
+  const idx = bank.excludeFromLimit.indexOf(category);
+  if (idx >= 0) bank.excludeFromLimit.splice(idx, 1);
+  else bank.excludeFromLimit.push(category);
+  if (bank.excludeFromLimit.length === 0) bank.excludeFromLimit = undefined;
+  invalidateRecommendation();
+  saveData();
+  renderDopModal();
+}
+
 function getEffectivePercent(bank, category) {
   const entry = bank.coinData.cashback.entries.find(e => e.category === category);
   if (!entry) return 0;
@@ -962,7 +997,8 @@ function getMaxCategories(bank) {
 
 function isAlwaysActiveCategory(bank, category) {
   const alwaysActive = new Set(getAlwaysActiveCats(bank));
-  return alwaysActive.has(category);
+  const manualExclude = new Set(bank.excludeFromLimit || []);
+  return alwaysActive.has(category) || manualExclude.has(category);
 }
 
 function getSelectableSelectedCount(bank) {
@@ -1211,7 +1247,7 @@ function renderBanks(app) {
       for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
         const isSel = bank.selectedCategories.includes(entry.category);
         const isRec = rec.has(entry.category);
-        const isAlways = alwaysActive.has(entry.category);
+        const isAlways = isAlwaysActiveCategory(bank, entry.category);
         const isDisabled = !isSel && limitReached && !isAlways;
         const extra = bankExtras[entry.category] || 0;
         const effectivePct = entry.percent + extra;
@@ -1219,9 +1255,9 @@ function renderBanks(app) {
         const entryLinks = (entry.links || []).map(lid => linksMap[lid]).filter(Boolean);
         const escCat = escHtml(entry.category).replace(/'/g, "\\'");
 
-        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
+        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + (isAlways ? ' excluded' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
         html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
-        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + (extra > 0 ? ' <span class="dop-tag">доп. +' + extra + '%</span>' : '') + '</div>';
+        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + (extra > 0 ? ' <span class="dop-tag">доп. +' + extra + '%</span>' : '') + (isAlways && !isSel ? ' <span class="dop-tag">не в лимите</span>' : '') + '</div>';
         html += '<div class="cat-details"><span class="cat-percent ' + percentClass(effectivePct) + '">' + effectivePct + '%' + (extra > 0 ? ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + entry.percent + '+' + extra + ')</span>' : '') + '</span>';
         if (entry.limit !== undefined) {
           html += '<span class="cat-limit">до ' + entry.limit.toLocaleString('ru-RU') + ' ₽/мес</span>';
