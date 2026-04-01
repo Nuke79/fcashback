@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cashback-v3';
+const CACHE_NAME = 'cashback-v4';
 const ASSETS = ['./index.html', './manifest.json', './icon-192.png'];
 
 // Install: cache all assets
@@ -16,9 +16,12 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Listen for skipWaiting message from main page
+// Listen for messages from main page
 self.addEventListener('message', (e) => {
   if (e.data === 'skipWaiting') self.skipWaiting();
+  if (e.data === 'getVersion') {
+    e.source.postMessage({ version: CACHE_NAME.replace('cashback-', '') });
+  }
 });
 
 // Fetch: network-first for HTML (always check for updates), cache-first for others

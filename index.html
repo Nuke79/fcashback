@@ -321,6 +321,18 @@
       .bc-name { font-size: 15px; }
       .btn-icon { width: 36px; height: 36px; padding: 6px; }
     }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--text); padding: 10px 20px; border-radius: var(--radius-sm);
+      font-size: 13px; z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      animation: toastIn 0.2s ease, toastOut 0.3s ease 2.7s forwards;
+      pointer-events: none; white-space: nowrap;
+    }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
   </style>
 </head>
 <body>
@@ -328,7 +340,7 @@
   <!-- ── Header ── -->
   <header class="header">
     <div class="header-row">
-      <div class="header-title">Кэшбэк Ассистент</div>
+      <div class="header-title" id="headerTitle" onclick="easterEggTap()">Кэшбэк Ассистент</div>
       <div class="header-actions">
         <button class="btn btn-icon" onclick="toggleTheme()" title="Сменить тему" id="themeBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="themeIconMoon"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -440,6 +452,37 @@
   </div>
 
 <script>
+// ─── Easter Egg: tap title 7 times to show version ─────────────────────────────────
+let _tapCount = 0, _tapTimer = null;
+function easterEggTap() {
+  _tapCount++;
+  clearTimeout(_tapTimer);
+  _tapTimer = setTimeout(() => { _tapCount = 0; }, 1500);
+  if (_tapCount >= 7) {
+    _tapCount = 0;
+    // Get SW cache version
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage('getVersion');
+    }
+    navigator.serviceWorker.addEventListener('message', function handler(e) {
+      if (e.data && e.data.version) {
+        showToast('⚙ v' + e.data.version);
+        navigator.serviceWorker.removeEventListener('message', handler);
+      }
+    });
+  }
+}
+
+function showToast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
 // ─── Theme Toggle ────────────────────────────────────────────────────────────────
 const THEME_KEY = 'cashback-theme';
 
@@ -746,7 +789,21 @@ function renderBanks(app) {
 }
 
 // ─── Actions ────────────────────────────────────────────────────────────────────
+function saveScroll() {
+  const el = document.querySelector('.categories-list');
+  return el ? el.scrollTop : 0;
+}
+
+function restoreScroll(pos) {
+  if (pos <= 0) return;
+  requestAnimationFrame(() => {
+    const el = document.querySelector('.categories-list');
+    if (el) el.scrollTop = pos;
+  });
+}
+
 function toggleCat(bankId, category) {
+  const scrollPos = saveScroll();
   const bank = banks.find(b => b.id === bankId);
   if (!bank) return;
   const idx = bank.selectedCategories.indexOf(category);
@@ -754,6 +811,7 @@ function toggleCat(bankId, category) {
   else bank.selectedCategories.push(category);
   bank.updatedAt = new Date().toISOString();
   saveData(); render();
+  restoreScroll(scrollPos);
 }
 
 function toggleExpand(bankId) {
