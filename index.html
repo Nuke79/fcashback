@@ -727,8 +727,66 @@ let pendingCoinData = null;
 function genId() { return Date.now().toString(36) + Math.random().toString(36).substring(2); }
 function getCurrentMonth() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 function formatMonth(m) { const [y,mo] = m.split('-'); return MONTH_NAMES[parseInt(mo)-1] + ' ' + y; }
-function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify({ banks })); }
-function loadData() { try { const s = localStorage.getItem(STORAGE_KEY); if (s) { const p = JSON.parse(s); if (Array.isArray(p.banks) && p.banks.length > 0) return p.banks; } } catch(e) {} return null; }
+const BACKUP_KEY = 'cashback-app-backup';
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ banks }));
+  // Auto-backup: save selections separately for recovery
+  const selections = {};
+  for (const bank of banks) {
+    if (bank.selectedCategories && bank.selectedCategories.length > 0) {
+      selections[bank.coinData.provider.name] = {
+        s: bank.selectedCategories, m: bank.month,
+        mx: bank.maxSelectable !== undefined && bank.maxSelectable !== null ? bank.maxSelectable : undefined,
+        e: (bank.customExtras && Object.keys(bank.customExtras).length > 0) ? bank.customExtras : undefined,
+        c: (bank.customCategories && bank.customCategories.length > 0) ? bank.customCategories : undefined,
+      };
+    }
+  }
+  localStorage.setItem(BACKUP_KEY, JSON.stringify(selections));
+}
+function loadData() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) {
+      const p = JSON.parse(s);
+      if (Array.isArray(p.banks) && p.banks.length > 0) {
+        for (const bank of p.banks) {
+          if (!bank.customExtras) bank.customExtras = {};
+          if (!bank.customCategories) bank.customCategories = [];
+        }
+        return p.banks;
+      }
+    }
+  } catch(e) { console.warn('loadData error:', e); }
+  return null;
+}
+function tryRecoverSelections() {
+  try {
+    const backup = localStorage.getItem(BACKUP_KEY);
+    if (!backup) return false;
+    const selections = JSON.parse(backup);
+    const bankNames = Object.keys(selections);
+    if (bankNames.length === 0) return false;
+    let recovered = 0;
+    for (const bank of banks) {
+      const name = bank.coinData.provider.name;
+      if (selections[name]) {
+        const sel = selections[name];
+        const validCats = bank.coinData.cashback.entries.map(e => e.category);
+        const customCats = (sel.c || []).map(c => c.name);
+        const allValid = [...validCats, ...customCats];
+        bank.selectedCategories = (sel.s || []).filter(c => allValid.includes(c));
+        if (sel.m) bank.month = sel.m;
+        if (sel.mx !== undefined) bank.maxSelectable = sel.mx;
+        if (sel.e) bank.customExtras = sel.e;
+        if (sel.c) bank.customCategories = sel.c;
+        recovered += bank.selectedCategories.length;
+      }
+    }
+    if (recovered > 0) { saveData(); showToast('Восстановлено ' + recovered + ' катег. из бэкапа'); return true; }
+  } catch(e) { console.warn('Recovery error:', e); }
+  return false;
+}
 
 function validateCoin(data) {
   if (!data || typeof data !== 'object') return { valid: false, error: 'Неверный формат данных' };
@@ -1372,6 +1430,8 @@ document.querySelectorAll('.overlay').forEach(overlay => {
       const v = validateCoin(data); if (!v.valid) return null;
       return { id: genId(), coinData: data, selectedCategories: [], addedAt: now, updatedAt: now, month };
     }).filter(Boolean);
+    // Try recover selections from backup before saving fresh data
+    tryRecoverSelections();
     saveData();
   }
   render();
