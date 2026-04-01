@@ -114,11 +114,7 @@
     .sel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
     .sel-title { font-size: 15px; font-weight: 600; color: var(--text-sec); }
     .sel-count { font-size: 13px; color: var(--text-muted); }
-    .sel-group { margin-bottom: 20px; }
-    .sel-group-letter {
-      font-size: 13px; font-weight: 700; color: var(--text-muted);
-      padding: 8px 4px 4px; letter-spacing: 1px;
-    }
+    .sel-group { margin-bottom: 6px; }
     .sel-item {
       display: flex; align-items: center; gap: 12px;
       padding: 14px 14px; border-radius: var(--radius-sm);
@@ -1142,20 +1138,9 @@ function renderSelected(app) {
     return;
   }
 
-  // Group by first letter
-  const groups = {};
-  for (const item of items) {
-    const letter = item.category[0].toUpperCase();
-    if (!groups[letter]) groups[letter] = [];
-    groups[letter].push(item);
-  }
-
   let html = '<div class="sel-header"><span class="sel-title">Выбранные категории</span><span class="sel-count">' + items.length + ' шт.</span></div>';
 
-  for (const [letter, gItems] of Object.entries(groups)) {
-    html += '<div class="sel-group">';
-    html += '<div class="sel-group-letter">' + escHtml(letter) + '</div>';
-    for (const item of gItems) {
+  for (const item of items) {
       const isWhite = item.bankColor === DEFAULT_COLOR.color;
       const cardCls = 'card-icon' + (isWhite ? ' white-card' : '');
       html += '<div class="sel-item">';
@@ -1168,8 +1153,6 @@ function renderSelected(app) {
       html += '</div></div>';
       html += '<span class="sel-item-pct" style="' + bankColorStyle(item.bankName) + '">' + item.percent + '%' + (item.extra > 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + item.basePercent + '+' + item.extra + ')</span>' : '') + '</span>';
       html += '</div>';
-    }
-    html += '</div>';
   }
   app.innerHTML = html;
 }
