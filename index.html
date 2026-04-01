@@ -428,6 +428,11 @@
     .panel { display: none; }
     .panel.active { display: block; }
 
+    /* ── Tab Swipe Animation ── */
+    .main { transition: opacity 0.15s ease, transform 0.15s ease; }
+    .main.slide-out-left { opacity: 0; transform: translateX(-30px); }
+    .main.slide-out-right { opacity: 0; transform: translateX(30px); }
+
     /* ── Responsive ── */
     @media (min-width: 641px) {
       .bank-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
@@ -1067,11 +1072,30 @@ function saveScroll() { const el = document.querySelector('.categories-list'); r
 function restoreScroll(pos) { if (pos <= 0) return; requestAnimationFrame(() => { const el = document.querySelector('.categories-list'); if (el) el.scrollTop = pos; }); }
 
 // ─── Tab Switching ─────────────────────────────────────────────────────────────
-function switchTab(tab) {
-  currentTab = tab;
-  document.getElementById('tabSelected').classList.toggle('active', tab === 'selected');
-  document.getElementById('tabBanks').classList.toggle('active', tab === 'banks');
-  render();
+function switchTab(tab, dir) {
+  if (tab === currentTab) return;
+  const app = document.getElementById('app');
+  if (dir) {
+    app.classList.add(dir === 'left' ? 'slide-out-left' : 'slide-out-right');
+    setTimeout(() => {
+      currentTab = tab;
+      document.getElementById('tabSelected').classList.toggle('active', tab === 'selected');
+      document.getElementById('tabBanks').classList.toggle('active', tab === 'banks');
+      app.classList.remove('slide-out-left', 'slide-out-right');
+      // Pre-position for entry animation
+      app.classList.add(dir === 'left' ? 'slide-out-right' : 'slide-out-left');
+      render();
+      // Remove entry class after render to trigger transition
+      requestAnimationFrame(() => {
+        app.classList.remove('slide-out-left', 'slide-out-right');
+      });
+    }, 130);
+  } else {
+    currentTab = tab;
+    document.getElementById('tabSelected').classList.toggle('active', tab === 'selected');
+    document.getElementById('tabBanks').classList.toggle('active', tab === 'banks');
+    render();
+  }
 }
 
 // ─── Render ─────────────────────────────────────────────────────────────────────
@@ -1438,6 +1462,47 @@ function clearAll() { banks = []; expandedBankId = null; localStorage.removeItem
 document.querySelectorAll('.overlay').forEach(overlay => {
   overlay.addEventListener('click', function(e) { if (e.target === this) { this.classList.add('hidden'); pendingCoinData = null; } });
 });
+
+// ─── Swipe Gesture ──────────────────────────────────────────────────────────────
+(function initSwipe() {
+  let startX = 0, startY = 0, isHorizontal = null;
+  const THRESHOLD = 80;
+  const LOCK_THRESHOLD = 12;
+
+  document.addEventListener('touchstart', function(e) {
+    // Don't detect swipes on modals, tab bar, header, or expanded bank categories
+    if (e.target.closest('.overlay:not(.hidden)') || e.target.closest('.tab-bar') || e.target.closest('.header')) return;
+    // Don't swipe when a bank card is expanded (user is interacting with categories)
+    if (expandedBankId !== null && e.target.closest('.bank-card.expanded')) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isHorizontal = null;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (startX === 0 && startY === 0) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = Math.abs(e.touches[0].clientY - startY);
+
+    if (isHorizontal === null && (Math.abs(dx) > LOCK_THRESHOLD || dy > LOCK_THRESHOLD)) {
+      isHorizontal = Math.abs(dx) > dy;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', function(e) {
+    if (!isHorizontal) { startX = 0; startY = 0; return; }
+    const dx = e.changedTouches[0].clientX - startX;
+    startX = 0; startY = 0; isHorizontal = null;
+
+    if (Math.abs(dx) < THRESHOLD) return;
+
+    if (dx < -THRESHOLD && currentTab === 'selected') {
+      switchTab('banks', 'left');
+    } else if (dx > THRESHOLD && currentTab === 'banks') {
+      switchTab('selected', 'right');
+    }
+  }, { passive: true });
+})();
 
 // ─── Init ───────────────────────────────────────────────────────────────────────
 (function init() {
