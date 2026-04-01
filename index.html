@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Кэшбэк Ассистент</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f172a; --bg-card: #1e293b; --bg-card-hover: #1e293b;
+      --bg-input: #1e293b; --bg-overlay: rgba(0,0,0,0.6);
+      --text: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --border: #334155; --border-hover: #475569;
+      --green: #22c55e; --green-dim: #16a34a; --green-glow: rgba(34,197,94,0.15);
+      --red: #ef4444; --blue: #3b82f6; --yellow: #eab308; --lime: #84cc16;
+      --radius: 12px; --radius-sm: 8px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    html { font-family: var(--font); background: var(--bg); color: var(--text); }
+    body { min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+    /* ── Header ── */
+    .header {
+      position: sticky; top: 0; z-index: 40;
+      background: rgba(15,23,42,0.85); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .header-title {
+      display: flex; align-items: center; gap: 10px; min-width: 0;
+      font-size: 18px; font-weight: 700;
+    }
+    .header-title svg { color: var(--green); flex-shrink: 0; }
+    .header-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 6px 12px; border-radius: var(--radius-sm); border: none;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: all 0.15s ease; white-space: nowrap;
+      background: transparent; color: var(--text-secondary);
+      font-family: var(--font);
+    }
+    .btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+    .btn-primary {
+      background: var(--green); color: #fff; font-weight: 600;
+    }
+    .btn-primary:hover { background: var(--green-dim); }
+    .btn-outline {
+      background: transparent; border: 1px solid var(--border); color: var(--text);
+    }
+    .btn-outline:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.05); }
+    .btn-danger { color: var(--red); }
+    .btn-danger:hover { background: rgba(239,68,68,0.1); }
+    .btn-sm { padding: 4px 8px; font-size: 12px; }
+    .btn-icon { padding: 6px; width: 32px; height: 32px; }
+    .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .btn-sm svg { width: 14px; height: 14px; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Main ── */
+    .main { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+
+    /* ── Grid ── */
+    .grid {
+      display: grid; gap: 16px;
+      grid-template-columns: 1fr;
+    }
+    .grid-multi { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+
+    /* ── Card ── */
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      transition: all 0.2s ease;
+    }
+    .card:hover { border-color: rgba(34,197,94,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    .card.selected { border-color: rgba(34,197,94,0.3); }
+    .card.expanded { border-color: rgba(34,197,94,0.5); }
+    .card-header { padding: 16px; }
+    .card-title {
+      font-size: 15px; font-weight: 600; display: flex;
+      align-items: center; gap: 8px;
+    }
+    .card-title svg { color: var(--green); flex-shrink: 0; }
+    .card-website {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; color: var(--text-muted); text-decoration: none;
+      margin-top: 4px; transition: color 0.15s;
+    }
+    .card-website:hover { color: var(--green); }
+    .card-website svg { width: 12px; height: 12px; }
+    .card-notes {
+      font-size: 12px; color: var(--text-muted); margin-top: 8px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .card-count { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+    /* Card header row */
+    .card-header-row {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+    }
+    .card-info { min-width: 0; flex: 1; }
+    .card-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 6px; border-radius: 6px;
+      background: var(--green); color: #fff;
+      font-size: 10px; font-weight: 600;
+    }
+    .badge svg { width: 12px; height: 12px; }
+
+    /* ── Categories ── */
+    .categories { padding: 0 16px 16px; border-top: 1px solid var(--border); margin-top: 12px; padding-top: 16px; }
+    .categories-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .categories-month { font-size: 14px; font-weight: 500; }
+    .categories-list { max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+
+    /* ── Category Row ── */
+    .cat-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .cat-row:hover { border-color: var(--border-hover); }
+    .cat-row.checked {
+      background: rgba(34,197,94,0.05); border-color: rgba(34,197,94,0.3);
+    }
+    .cat-checkbox {
+      width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0;
+      border: 2px solid var(--border-hover); display: flex;
+      align-items: center; justify-content: center; transition: all 0.15s;
+    }
+    .cat-row.checked .cat-checkbox {
+      background: var(--green); border-color: var(--green);
+    }
+    .cat-checkbox svg { width: 12px; height: 12px; color: #fff; opacity: 0; }
+    .cat-row.checked .cat-checkbox svg { opacity: 1; }
+    .cat-info { flex: 1; min-width: 0; }
+    .cat-name {
+      font-size: 13px; font-weight: 500;
+      color: var(--text-muted); transition: color 0.15s;
+    }
+    .cat-row.checked .cat-name { color: var(--text); }
+    .cat-details { display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
+    .cat-percent { font-size: 14px; font-weight: 700; }
+    .cat-percent.high { color: var(--green); }
+    .cat-percent.mid { color: #4ade80; }
+    .cat-percent.low { color: var(--lime); }
+    .cat-percent.lowest { color: var(--yellow); }
+    .cat-limit {
+      font-size: 10px; color: var(--text-muted);
+      background: rgba(255,255,255,0.06); padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .cat-note-toggle {
+      padding: 4px; width: 24px; height: 24px; border: none;
+      background: transparent; color: var(--text-muted); cursor: pointer;
+      border-radius: 4px; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .cat-note-toggle:hover { background: rgba(255,255,255,0.06); }
+    .cat-note-toggle svg { width: 14px; height: 14px; }
+    .cat-notes-box {
+      padding: 4px 12px 10px 40px; display: flex;
+      flex-direction: column; gap: 4px;
+    }
+    .cat-note-text { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+    .cat-note-link {
+      font-size: 11px; color: var(--green); text-decoration: none;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .cat-note-link:hover { text-decoration: underline; }
+    .cat-note-link svg { width: 11px; height: 11px; }
+
+    /* ── Empty State ── */
+    .empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 80px 20px; gap: 16px; text-align: center;
+    }
+    .empty svg { color: var(--text-muted); opacity: 0.3; }
+    .empty p { font-size: 14px; color: var(--text-muted); }
+
+    /* ── Modal Overlay ── */
+    .overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: var(--bg-overlay); display: flex;
+      align-items: center; justify-content: center; padding: 16px;
+      animation: fadeIn 0.15s ease;
+    }
+    .overlay.hidden { display: none; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); width: 100%; max-width: 420px;
+      max-height: 90vh; overflow-y: auto;
+      animation: slideUp 0.2s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header { padding: 20px 20px 0; }
+    .modal-title { font-size: 16px; font-weight: 600; }
+    .modal-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .modal-body { padding: 16px 20px; }
+    .modal-footer {
+      padding: 12px 20px 20px; display: flex;
+      justify-content: flex-end; gap: 8px;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 4px; background: rgba(255,255,255,0.04);
+      border-radius: var(--radius-sm); padding: 4px; margin-bottom: 12px;
+    }
+    .tab {
+      flex: 1; padding: 8px; border: none; border-radius: 6px;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      background: transparent; color: var(--text-muted);
+      transition: all 0.15s; display: flex; align-items: center;
+      justify-content: center; gap: 6px; font-family: var(--font);
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { background: var(--green); color: #fff; }
+    .tab svg { width: 14px; height: 14px; }
+
+    /* ── Upload Zone ── */
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: var(--radius-sm);
+      padding: 32px 16px; text-align: center; cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .upload-zone:hover { border-color: rgba(34,197,94,0.5); }
+    .upload-zone svg { margin: 0 auto 8px; color: var(--text-muted); }
+    .upload-zone p { font-size: 13px; color: var(--text-muted); }
+
+    /* ── Textarea ── */
+    .textarea {
+      width: 100%; min-height: 150px; padding: 12px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-size: 12px; font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      resize: vertical; outline: none;
+    }
+    .textarea:focus { border-color: var(--green); }
+    .textarea::placeholder { color: var(--text-muted); }
+
+    /* ── Error text ── */
+    .error-text { font-size: 13px; color: var(--red); margin-top: 8px; }
+
+    /* ── Action card (duplicate dialog) ── */
+    .action-card {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); cursor: pointer;
+      text-align: left; width: 100%; background: transparent;
+      color: var(--text); transition: all 0.15s; font-family: var(--font);
+    }
+    .action-card:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.03); }
+    .action-card svg { color: var(--green); flex-shrink: 0; margin-top: 2px; }
+    .action-card-title { font-size: 13px; font-weight: 500; }
+    .action-card-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .header-title span { font-size: 16px; }
+      .btn .btn-label { display: none; }
+      .main { padding: 16px 12px; }
+    }
+    @media (min-width: 641px) {
+      .grid-multi { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+    }
+
+    /* ── Label hidden on mobile ── */
+    @media (max-width: 480px) {
+      .btn-label { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+      <span>Кэшбэк Ассистент</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-sm" onclick="openImportModal()" title="Импорт COIN">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span class="btn-label">COIN</span>
+      </button>
+      <button class="btn btn-sm" onclick="importBackup()" title="Восстановить резервную копию">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+        <span class="btn-label">Резерв</span>
+      </button>
+      <button class="btn btn-sm" onclick="exportBackup()" title="Скачать резервную копию">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span class="btn-label">Экспорт</span>
+      </button>
+      <button class="btn btn-sm btn-danger btn-icon" onclick="openClearModal()" title="Очистить все">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Main Content ── -->
+  <main class="main" id="app">
+    <!-- Rendered by JS -->
+  </main>
+
+  <!-- ── Import COIN Modal ── -->
+  <div class="overlay hidden" id="importModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Импорт COIN файла</div>
+        <div class="modal-desc">Загрузите файл COIN 2.0 или вставьте JSON текст</div>
+      </div>
+      <div class="modal-body">
+        <div class="tabs">
+          <button class="tab active" id="tabFile" onclick="switchImportTab('file')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Файл
+          </button>
+          <button class="tab" id="tabPaste" onclick="switchImportTab('paste')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+            Текст
+          </button>
+        </div>
+        <div id="importFileZone">
+          <div class="upload-zone" onclick="document.getElementById('coinFileInput').click()">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p>Нажмите для выбора JSON файла</p>
+          </div>
+          <input type="file" id="coinFileInput" accept=".json" style="display:none" onchange="handleFileUpload(event)">
+        </div>
+        <div id="importPasteZone" style="display:none">
+          <textarea class="textarea" id="pasteText" placeholder="Вставьте JSON текст COIN файла..."></textarea>
+          <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="handlePasteImport()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Импортировать
+          </button>
+        </div>
+        <div class="error-text hidden" id="importError"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeImportModal()">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Duplicate Modal ── -->
+  <div class="overlay hidden" id="duplicateModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Банк уже существует</div>
+        <div class="modal-desc" id="dupBankName"></div>
+      </div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:8px">
+        <button class="action-card" onclick="handleDuplicate('replace')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          <div><div class="action-card-title">Обновить категории</div><div class="action-card-desc">Заменить данные, сбросить текущий выбор</div></div>
+        </button>
+        <button class="action-card" onclick="handleDuplicate('keep')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <div><div class="action-card-title">Обновить и сохранить выбор</div><div class="action-card-desc">Заменить данные, сохранить совпадающие выбранные</div></div>
+        </button>
+        <button class="action-card" onclick="handleDuplicate('cancel')">
+          <div class="action-card-title">Отмена</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Clear All Modal ── -->
+  <div class="overlay hidden" id="clearModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Очистить все данные?</div>
+        <div class="modal-desc">Все банковские карты и выбранные категории будут удалены. Это действие нельзя отменить.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeClearModal()">Отмена</button>
+        <button class="btn btn-primary" style="background:var(--red)" onclick="clearAll()">Очистить</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ─── Register Service Worker ────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// ─── Embedded COIN Data ─────────────────────────────────────────────────────────
+
+const EMBEDDED_COINS = [
+  {"coinVersion":"2.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"Сбербанк","website":"https://www.sberbank.ru","notes":"Дебетовая карта с выбором 5 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки."},"cashback":{"entries":[{"category":"Транспорт","percent":10,"notes":[1]},{"category":"СпасибоТревел","percent":5,"limit":3000,"notes":[2]},{"category":"Кино и театр","percent":5,"notes":[1]},{"category":"Одежда и обувь","percent":3,"notes":[1]},{"category":"Товары для дома","percent":3,"notes":[1]},{"category":"Салоны красоты","percent":3,"notes":[1]},{"category":"Медицинские услуги","percent":2,"notes":[1]},{"category":"На все покупки","percent":1,"notes":[3]}]},"notes":[{"id":1,"note":"Категория на выбор (можно выбрать 5 из списка на месяц)."},{"id":2,"note":"Кэшбэк начисляется в бонусах Спасибо, лимит до 3 000 бонусов."},{"id":3,"note":"Всегда действующий кэшбэк при оплате дебетовой картой."}],"links":[{"id":1,"link":"https://www.sberbank.ru/promo/cashback"}]},
+  {"coinVersion":"2.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"ПСБ (Промсвязьбанк)","website":"https://www.psbank.ru","notes":"Дебетовая карта с выбором 3 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки."},"cashback":{"entries":[{"category":"Кафе, рестораны, фастфуд","percent":5,"notes":[1]},{"category":"Такси, каршеринг","percent":5,"notes":[1]},{"category":"Платные дороги","percent":5,"notes":[1]},{"category":"Салоны красоты","percent":5,"notes":[2]},{"category":"Товары для детей","percent":5,"notes":[2]},{"category":"Кино, театры, матчи","percent":5,"notes":[2]},{"category":"Товары для животных","percent":5,"notes":[2]},{"category":"Цветы и подарки","percent":5,"notes":[2]},{"category":"Книги и канцтовары","percent":5,"notes":[2]},{"category":"Общественный транспорт","percent":5,"notes":[2]},{"category":"Магазины Duty Free","percent":5,"notes":[2]},{"category":"Ж/д билеты","percent":5,"notes":[2]},{"category":"Спорттовары","percent":3,"notes":[2]},{"category":"Аптеки, медицина","percent":3,"notes":[2]},{"category":"Косметика и парфюмерия","percent":3,"notes":[2]},{"category":"АЗС","percent":2,"notes":[2]},{"category":"На все покупки","percent":1,"notes":[3]}]},"notes":[{"id":1,"note":"Выбранная категория (выбрано 3 из 3 доступных на месяц)."},{"id":2,"note":"Категория доступна для выбора (можно выбрать 3 из списка на месяц)."},{"id":3,"note":"Всегда действующий кэшбэк на все покупки."}],"links":[{"id":1,"link":"https://www.psbank.ru/Personal/Keshbek"}]},
+  {"coinVersion":"2.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"ВТБ","website":"https://www.vtb.ru","notes":"Дебетовая карта BTB. Выбираемые категории суммируются с всегда действующими. Без подписки BTB Плюс."},"cashback":{"entries":[{"category":"Транспорт","percent":10,"notes":[1]},{"category":"АЗС","percent":5,"notes":[2,3]},{"category":"Здоровье","percent":5,"limit":1000,"notes":[2]},{"category":"Дом и ремонт","percent":5,"limit":1000,"notes":[2]},{"category":"Супермаркеты","percent":1.5,"notes":[2]},{"category":"МЕДСИ","percent":15,"limit":1500,"notes":[4]},{"category":"Tasty Coffee","percent":10,"limit":500,"notes":[5]},{"category":"BTB Pay на все покупки","percent":1,"notes":[6]}]},"notes":[{"id":1,"note":"Временный бонус за хранение остатков. Действует 27.03–25.04."},{"id":2,"note":"Категория на выбор (можно выбрать 4 из списка на месяц). Действующие категории суммируются с выбираемыми."},{"id":3,"note":"Суммируется с временным бонусом 3% за хранение остатков (27.03–25.04), итоговый кэшбэк на АЗС — 8%."},{"id":4,"note":"Спецпредложение: оплата услуг в клиниках МЕДСИ. Кэшбэк до 1 500 ₽ в месяц."},{"id":5,"note":"Спецпредложение: при оплате на сайте и в приложении Tasty Coffee, кроме сертификатов и пополнения внутреннего счёта. Кэшбэк до 500 ₽ в месяц."},{"id":6,"note":"Всегда действующий кэшбэк при оплате смартфоном Android. Условие: сбережения от 50 000 ₽."}],"links":[{"id":1,"link":"https://www.vtb.ru/personal/karty/debetovye-karty/btb/"}]},
+  {"coinVersion":"2.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"Озон Банк","website":"https://www.ozonbank.ru","notes":"Дебетовая карта с выбором 4 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки. Дополнительные категории доступны с Premium-подпиской."},"cashback":{"entries":[{"category":"Tasty Coffee","percent":50,"notes":[1]},{"category":"Искусство","percent":25,"notes":[1]},{"category":"РИВ ГОШ","percent":10,"notes":[1]},{"category":"Аптеки","percent":7,"notes":[1]},{"category":"Яндекс Лавка","percent":7,"notes":[1]},{"category":"Супермаркеты","percent":3,"notes":[1]},{"category":"Такси","percent":5,"notes":[1]},{"category":"Топливо и АЗС","percent":5,"notes":[1]},{"category":"Транспорт","percent":5,"notes":[1]},{"category":"Фастфуд","percent":5,"notes":[1]},{"category":"На все покупки","percent":1,"notes":[2]}]},"notes":[{"id":1,"note":"Категория доступна для выбора (можно выбрать 4 из списка на месяц)."},{"id":2,"note":"Всегда действующий кэшбэк на все покупки. Для добавления 5-й категории требуется Premium-подписка."}],"links":[{"id":1,"link":"https://www.ozonbank.ru/"}]}
+];
+
+// ─── State ──────────────────────────────────────────────────────────────────────
+
+const STORAGE_KEY = 'cashback-app-data';
+const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+let banks = [];
+let expandedBankId = null;
+let pendingCoinData = null;
+
+// ─── Helpers ────────────────────────────────────────────────────────────────────
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).substring(2); }
+function getCurrentMonth() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
+function formatMonth(m) { const [y,mo] = m.split('-'); return MONTH_NAMES[parseInt(mo)-1] + ' ' + y; }
+
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify({ banks })); }
+
+function loadData() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) {
+      const p = JSON.parse(s);
+      if (Array.isArray(p.banks) && p.banks.length > 0) return p.banks;
+    }
+  } catch(e) {}
+  return null;
+}
+
+function validateCoin(data) {
+  if (!data || typeof data !== 'object') return { valid: false, error: 'Неверный формат данных' };
+  if (typeof data.coinVersion !== 'string') return { valid: false, error: 'Отсутствует coinVersion' };
+  if (typeof data.created !== 'string') return { valid: false, error: 'Отсутствует created' };
+  if (!data.provider || typeof data.provider !== 'object') return { valid: false, error: 'Отсутствует provider' };
+  if (typeof data.provider.name !== 'string') return { valid: false, error: 'Отсутствует provider.name' };
+  if (!data.cashback || typeof data.cashback !== 'object') return { valid: false, error: 'Отсутствует cashback' };
+  if (!Array.isArray(data.cashback.entries)) return { valid: false, error: 'Отсутствует cashback.entries' };
+  for (const e of data.cashback.entries) {
+    if (typeof e.category !== 'string') return { valid: false, error: 'Отсутствует category' };
+    if (typeof e.percent !== 'number') return { valid: false, error: 'Отсутствует percent' };
+  }
+  return { valid: true };
+}
+
+function percentClass(p) {
+  if (p >= 10) return 'high';
+  if (p >= 5) return 'mid';
+  if (p >= 3) return 'low';
+  return 'lowest';
+}
+
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ─── SVG Icons ──────────────────────────────────────────────────────────────────
+
+const ICONS = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  chevronUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>',
+  chevronDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+  externalLink: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+  refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>',
+  banknote: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>',
+};
+
+// ─── Render ─────────────────────────────────────────────────────────────────────
+
+function render() {
+  const app = document.getElementById('app');
+  if (banks.length === 0) {
+    app.innerHTML = '<div class="empty"><div style="width:64px;height:64px">' + ICONS.banknote + '</div><p>Нет добавленных банков</p><button class="btn btn-primary" onclick="openImportModal()" style="gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Импорт COIN</button></div>';
+    return;
+  }
+
+  const isExpanded = expandedBankId !== null;
+  let html = '<div class="grid' + (isExpanded ? '' : ' grid-multi') + '">';
+
+  for (const bank of banks) {
+    const isExp = expandedBankId === bank.id;
+    const selCount = bank.selectedCategories.length;
+    const totalCount = bank.coinData.cashback.entries.length;
+    const notesMap = {};
+    (bank.coinData.notes || []).forEach(n => { notesMap[n.id] = n.note; });
+    const linksMap = {};
+    (bank.coinData.links || []).forEach(l => { linksMap[l.id] = l.link; });
+
+    html += '<div class="card' + (selCount > 0 ? ' selected' : '') + (isExp ? ' expanded' : '') + '">';
+    html += '<div class="card-header"><div class="card-header-row"><div class="card-info">';
+    html += '<div class="card-title"><span style="width:18px;height:18px;flex-shrink:0">' + ICONS.banknote + '</span><span>' + escHtml(bank.coinData.provider.name) + '</span></div>';
+    if (bank.coinData.provider.website) {
+      html += '<a href="' + escHtml(bank.coinData.provider.website) + '" target="_blank" rel="noopener noreferrer" class="card-website"><span style="width:12px;height:12px">' + ICONS.externalLink + '</span><span>' + escHtml(bank.coinData.provider.website.replace(/^https?:\/\//, '')) + '</span></a>';
+    }
+    if (bank.coinData.provider.notes) {
+      html += '<div class="card-notes">' + escHtml(bank.coinData.provider.notes) + '</div>';
+    }
+    html += '<div class="card-count">' + selCount + ' / ' + totalCount + ' категорий выбрано</div>';
+    html += '</div><div class="card-actions">';
+    if (selCount > 0) {
+      html += '<span class="badge"><span style="width:12px;height:12px">' + ICONS.check + '</span>' + selCount + '</span>';
+    }
+    html += '<button class="btn btn-sm' + (isExp ? ' btn-primary' : ' btn-outline') + '" onclick="toggleExpand(\'' + bank.id + '\')"><span style="width:14px;height:14px">' + (isExp ? ICONS.chevronUp : ICONS.chevronDown) + '</span><span class="btn-label">' + (isExp ? 'Свернуть' : 'Выбрать') + '</span></button>';
+    html += '<button class="btn btn-sm btn-danger btn-icon" onclick="deleteBank(\'' + bank.id + '\')" title="Удалить"><span style="width:14px;height:14px">' + ICONS.trash + '</span></button>';
+    html += '</div></div></div>';
+
+    if (isExp) {
+      html += '<div class="categories">';
+      html += '<div class="categories-header"><span class="categories-month">' + formatMonth(bank.month) + '</span>';
+      html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')"><span style="width:12px;height:12px">' + ICONS.refresh + '</span><span>Новый месяц</span></button>';
+      html += '</div>';
+      html += '<div class="categories-list">';
+
+      for (const entry of bank.coinData.cashback.entries) {
+        const isSel = bank.selectedCategories.includes(entry.category);
+        const entryNotes = (entry.notes || []).map(nid => notesMap[nid]).filter(Boolean);
+        const entryLinks = (entry.links || []).map(lid => linksMap[lid]).filter(Boolean);
+
+        html += '<div class="cat-row' + (isSel ? ' checked' : '') + '" onclick="toggleCat(\'' + bank.id + '\',\'' + escHtml(entry.category).replace(/'/g, "\\'") + '\')">';
+        html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
+        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + '</div>';
+        html += '<div class="cat-details"><span class="cat-percent ' + percentClass(entry.percent) + '">' + entry.percent + '%</span>';
+        if (entry.limit !== undefined) {
+          html += '<span class="cat-limit">до ' + entry.limit.toLocaleString('ru-RU') + ' ₽/мес</span>';
+        }
+        html += '</div></div>';
+        if (entryNotes.length > 0 || entryLinks.length > 0) {
+          html += '<button class="cat-note-toggle" onclick="event.stopPropagation();toggleNotes(this)" title="Подробности"><span style="width:14px;height:14px">' + ICONS.chevronDown + '</span></button>';
+        }
+        html += '</div>';
+        if (entryNotes.length > 0 || entryLinks.length > 0) {
+          html += '<div class="cat-notes-box" style="display:none">';
+          for (const note of entryNotes) {
+            html += '<div class="cat-note-text">💡 ' + escHtml(note) + '</div>';
+          }
+          for (const link of entryLinks) {
+            html += '<a href="' + escHtml(link) + '" target="_blank" rel="noopener noreferrer" class="cat-note-link"><span style="width:11px;height:11px">' + ICONS.externalLink + '</span>' + escHtml(link) + '</a>';
+          }
+          html += '</div>';
+        }
+      }
+      html += '</div></div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  app.innerHTML = html;
+}
+
+// ─── Actions ────────────────────────────────────────────────────────────────────
+
+function toggleCat(bankId, category) {
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) return;
+  const idx = bank.selectedCategories.indexOf(category);
+  if (idx >= 0) bank.selectedCategories.splice(idx, 1);
+  else bank.selectedCategories.push(category);
+  bank.updatedAt = new Date().toISOString();
+  saveData();
+  render();
+}
+
+function toggleExpand(bankId) {
+  expandedBankId = expandedBankId === bankId ? null : bankId;
+  render();
+}
+
+function newMonth(bankId) {
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) return;
+  bank.selectedCategories = [];
+  bank.month = getCurrentMonth();
+  bank.updatedAt = new Date().toISOString();
+  saveData();
+  render();
+}
+
+function deleteBank(bankId) {
+  banks = banks.filter(b => b.id !== bankId);
+  if (expandedBankId === bankId) expandedBankId = null;
+  saveData();
+  render();
+}
+
+function toggleNotes(btn) {
+  const box = btn.parentElement.nextElementSibling;
+  if (!box || !box.classList.contains('cat-notes-box')) return;
+  const shown = box.style.display !== 'none';
+  box.style.display = shown ? 'none' : 'flex';
+  btn.innerHTML = shown
+    ? '<span style="width:14px;height:14px">' + ICONS.chevronDown + '</span>'
+    : '<span style="width:14px;height:14px">' + ICONS.chevronUp + '</span>';
+}
+
+// ─── Import COIN ────────────────────────────────────────────────────────────────
+
+function openImportModal() {
+  document.getElementById('importModal').classList.remove('hidden');
+  document.getElementById('importError').classList.add('hidden');
+  document.getElementById('pasteText').value = '';
+  switchImportTab('file');
+}
+
+function closeImportModal() {
+  document.getElementById('importModal').classList.add('hidden');
+}
+
+function switchImportTab(mode) {
+  document.getElementById('tabFile').classList.toggle('active', mode === 'file');
+  document.getElementById('tabPaste').classList.toggle('active', mode === 'paste');
+  document.getElementById('importFileZone').style.display = mode === 'file' ? '' : 'none';
+  document.getElementById('importPasteZone').style.display = mode === 'paste' ? '' : 'none';
+  document.getElementById('importError').classList.add('hidden');
+}
+
+function showImportError(msg) {
+  const el = document.getElementById('importError');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function processImport(coinData) {
+  const v = validateCoin(coinData);
+  if (!v.valid) { showImportError(v.error); return; }
+
+  const existing = banks.find(b => b.coinData.provider.name === coinData.provider.name);
+  if (existing) {
+    pendingCoinData = coinData;
+    closeImportModal();
+    document.getElementById('dupBankName').textContent = 'Банк «' + coinData.provider.name + '» уже добавлен. Выберите действие:';
+    document.getElementById('duplicateModal').classList.remove('hidden');
+  } else {
+    addBank(coinData);
+    closeImportModal();
+  }
+}
+
+function addBank(coinData, keepSelections, oldBank) {
+  const now = new Date().toISOString();
+  const bank = {
+    id: genId(),
+    coinData: coinData,
+    selectedCategories: [],
+    addedAt: now,
+    updatedAt: now,
+    month: getCurrentMonth()
+  };
+  if (keepSelections && oldBank) {
+    const newEntries = coinData.cashback.entries;
+    bank.selectedCategories = oldBank.selectedCategories.filter(cat => {
+      const oldE = oldBank.coinData.cashback.entries.find(e => e.category === cat);
+      const newE = newEntries.find(e => e.category === cat);
+      return oldE && newE && oldE.percent === newE.percent;
+    });
+  }
+  banks.push(bank);
+  saveData();
+  render();
+}
+
+function handleDuplicate(action) {
+  if (!pendingCoinData || action === 'cancel') {
+    pendingCoinData = null;
+    document.getElementById('duplicateModal').classList.add('hidden');
+    return;
+  }
+  const existing = banks.find(b => b.coinData.provider.name === pendingCoinData.provider.name);
+  if (action === 'replace') {
+    banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name);
+    addBank(pendingCoinData, false, null);
+  } else if (action === 'keep' && existing) {
+    banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name);
+    addBank(pendingCoinData, true, existing);
+  }
+  pendingCoinData = null;
+  document.getElementById('duplicateModal').classList.add('hidden');
+}
+
+function handleFileUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  document.getElementById('importError').classList.add('hidden');
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      processImport(data);
+    } catch(err) {
+      showImportError('Не удалось прочитать файл. Проверьте формат JSON.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function handlePasteImport() {
+  const text = document.getElementById('pasteText').value.trim();
+  if (!text) { showImportError('Вставьте JSON текст'); return; }
+  try {
+    const data = JSON.parse(text);
+    processImport(data);
+  } catch(err) {
+    showImportError('Неверный формат JSON');
+  }
+}
+
+// ─── Export / Import Backup ─────────────────────────────────────────────────────
+
+function exportBackup() {
+  const json = JSON.stringify({ banks }, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cashback-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importBackup() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.banks && Array.isArray(data.banks)) {
+          for (const bank of data.banks) {
+            const v = validateCoin(bank.coinData);
+            if (!v.valid) { alert('Ошибка в данных банка "' + (bank.coinData && bank.coinData.provider ? bank.coinData.provider.name : 'неизвестно') + '": ' + v.error); return; }
+          }
+          banks = data.banks;
+          saveData();
+          expandedBankId = null;
+          render();
+        } else {
+          alert('Неверный формат файла резервной копии');
+        }
+      } catch(err) {
+        alert('Не удалось прочитать файл');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ─── Clear All ──────────────────────────────────────────────────────────────────
+
+function openClearModal() { document.getElementById('clearModal').classList.remove('hidden'); }
+function closeClearModal() { document.getElementById('clearModal').classList.add('hidden'); }
+function clearAll() {
+  banks = [];
+  expandedBankId = null;
+  localStorage.removeItem(STORAGE_KEY);
+  closeClearModal();
+  render();
+}
+
+// ─── Close modals on overlay click ──────────────────────────────────────────────
+
+document.querySelectorAll('.overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === this) {
+      this.classList.add('hidden');
+      pendingCoinData = null;
+    }
+  });
+});
+
+// ─── Init ───────────────────────────────────────────────────────────────────────
+
+(function init() {
+  const stored = loadData();
+  if (stored) {
+    banks = stored;
+  } else {
+    // Load embedded coins
+    const month = getCurrentMonth();
+    const now = new Date().toISOString();
+    banks = EMBEDDED_COINS.map(data => {
+      const v = validateCoin(data);
+      if (!v.valid) return null;
+      return { id: genId(), coinData: data, selectedCategories: [], addedAt: now, updatedAt: now, month };
+    }).filter(Boolean);
+    saveData();
+  }
+  render();
+})();
+</script>
+</body>
+</html>
