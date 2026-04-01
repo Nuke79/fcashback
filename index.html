@@ -240,6 +240,42 @@
     .cat-note-link:hover { text-decoration: underline; }
     .cat-note-link svg { width: 12px; height: 12px; }
 
+    /* ── Category Limit ── */
+    .cat-row.disabled { opacity: 0.4; cursor: not-allowed; }
+    .cat-row.disabled:hover { border-color: var(--border); }
+    .cat-row.disabled .cat-checkbox { border-style: dashed; }
+    .cat-limit-bar {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--text-sec); margin-bottom: 10px;
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    }
+    .cat-limit-bar.full { border-color: var(--yellow); background: rgba(234,179,8,0.06); }
+    .cat-limit-bar.over { border-color: var(--red); background: rgba(239,68,68,0.06); }
+    .cat-limit-controls { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+    .cat-limit-btn {
+      width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-sec); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600; transition: all 0.15s;
+      font-family: var(--font); padding: 0; line-height: 1;
+    }
+    .cat-limit-btn:hover { background: rgba(255,255,255,0.08); border-color: var(--border-hi); color: var(--text); }
+    .cat-limit-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .cat-limit-value {
+      font-weight: 700; min-width: 20px; text-align: center;
+      font-size: 14px; color: var(--text);
+    }
+    .cat-limit-label { font-size: 11px; color: var(--text-muted); }
+    .cat-limit-progress {
+      flex: 1; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.08); overflow: hidden;
+    }
+    .cat-limit-progress-fill { height: 100%; border-radius: 2px; transition: width 0.2s, background 0.2s; }
+    .cat-limit-progress-fill.ok { background: var(--green); }
+    .cat-limit-progress-fill.full { background: var(--yellow); }
+    .cat-limit-progress-fill.over { background: var(--red); }
+
     /* ── Empty ── */
     .empty {
       display: flex; flex-direction: column; align-items: center;
@@ -644,12 +680,34 @@ const ICONS = {
 // ─── Recommendation Algorithm ──────────────────────────────────────────────────
 
 function getMaxCategories(bank) {
+  // User override takes priority
+  if (bank.maxSelectable !== undefined && bank.maxSelectable !== null) return bank.maxSelectable;
+  // Auto-detect from notes
   const notes = bank.coinData.notes || [];
   for (const note of notes) {
     const m = note.note.match(/можно выбрать\s+(\d+)\s+из/);
     if (m) return parseInt(m[1]);
   }
   return 5;
+}
+
+function isAlwaysActiveCategory(bank, category) {
+  const alwaysActive = new Set(getAlwaysActiveCats(bank));
+  return alwaysActive.has(category);
+}
+
+function getSelectableSelectedCount(bank) {
+  return bank.selectedCategories.filter(cat => !isAlwaysActiveCategory(bank, cat)).length;
+}
+
+function setBankLimit(bankId, value) {
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) return;
+  if (value === '') { bank.maxSelectable = null; } // reset to auto
+  else { bank.maxSelectable = Math.max(0, parseInt(value) || 0); }
+  invalidateRecommendation();
+  saveData(); render();
+  restoreScroll(saveScrollBeforeRender);
 }
 
 function getAlwaysActiveCats(bank) {
@@ -813,7 +871,8 @@ function renderBanks(app) {
     if (bank.coinData.provider.notes) {
       html += '<div class="bc-desc">' + escHtml(bank.coinData.provider.notes) + '</div>';
     }
-    html += '<div class="bc-count">' + selCount + ' / ' + totalCount + '</div>';
+    const bankMax = getMaxCategories(bank);
+    html += '<div class="bc-count">' + selCount + ' выбрано' + (bankMax > 0 ? ' (лимит ' + bankMax + ')' : '') + '</div>';
     html += '</div></div><div class="bc-actions">';
     if (selCount > 0) {
       html += '<span class="badge" style="background:' + bc.color + '"><span style="width:13px;height:13px">' + ICONS.check + '</span>' + selCount + '</span>';
@@ -824,21 +883,41 @@ function renderBanks(app) {
 
     if (isExp) {
       const rec = getRecommendation()[bank.id] || new Set();
+      const maxCat = getMaxCategories(bank);
+      const selCount = getSelectableSelectedCount(bank);
+      const alwaysActive = new Set(getAlwaysActiveCats(bank));
       html += '<div class="categories">';
       html += '<div class="categories-header"><span class="categories-month">' + formatMonth(bank.month) + '</span>';
       html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:14px;height:14px">' + ICONS.refresh + '</span>Новый месяц</button>';
-      html += '</div><div class="categories-list">';
+      html += '</div>';
+      // Limit bar
+      const limitPct = maxCat > 0 ? Math.min(100, Math.round(selCount / maxCat * 100)) : 0;
+      const limitClass = maxCat === 0 ? '' : selCount >= maxCat ? (selCount > maxCat ? 'over' : 'full') : '';
+      html += '<div class="cat-limit-bar' + (limitClass ? ' ' + limitClass : '') + '">';
+      html += '<span>' + selCount + ' / ' + (maxCat > 0 ? maxCat : '∞') + '</span>';
+      html += '<div class="cat-limit-progress"><div class="cat-limit-progress-fill ' + (maxCat === 0 ? 'ok' : selCount > maxCat ? 'over' : selCount >= maxCat ? 'full' : 'ok') + '" style="width:' + limitPct + '%"></div></div>';
+      html += '<div class="cat-limit-controls">';
+      html += '<button class="cat-limit-btn" onclick="event.stopPropagation();setBankLimit(\'' + bank.id + '\',' + (maxCat - 1) + ')"' + (maxCat <= 0 ? ' disabled' : '') + '>−</button>';
+      html += '<span class="cat-limit-value">' + (maxCat > 0 ? maxCat : '∞') + '</span>';
+      html += '<button class="cat-limit-btn" onclick="event.stopPropagation();setBankLimit(\'' + bank.id + '\',' + (maxCat + 1) + ')">+</button>';
+      html += '</div>';
+      html += '<span class="cat-limit-label">' + (maxCat > 0 ? 'лимит' : 'без лимита') + '</span>';
+      html += '</div>';
+      html += '<div class="categories-list">';
 
+      const limitReached = maxCat > 0 && selCount >= maxCat;
       for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
         const isSel = bank.selectedCategories.includes(entry.category);
         const isRec = rec.has(entry.category);
+        const isAlways = alwaysActive.has(entry.category);
+        const isDisabled = !isSel && limitReached && !isAlways;
         const entryNotes = (entry.notes || []).map(nid => notesMap[nid]).filter(Boolean);
         const entryLinks = (entry.links || []).map(lid => linksMap[lid]).filter(Boolean);
         const escCat = escHtml(entry.category).replace(/'/g, "\\'");
 
-        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + '" onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')">';
+        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
         html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
-        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="width:13px;height:13px;vertical-align:middle;margin-left:2px">' + ICONS.bolt + '</span>' : '') + '</div>';
+        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + '</div>';
         html += '<div class="cat-details"><span class="cat-percent ' + percentClass(entry.percent) + '">' + entry.percent + '%</span>';
         if (entry.limit !== undefined) {
           html += '<span class="cat-limit">до ' + entry.limit.toLocaleString('ru-RU') + ' ₽/мес</span>';
@@ -864,30 +943,32 @@ function renderBanks(app) {
 }
 
 // ─── Actions ────────────────────────────────────────────────────────────────────
-function saveScroll() {
-  const el = document.querySelector('.categories-list');
-  return el ? el.scrollTop : 0;
-}
-
-function restoreScroll(pos) {
-  if (pos <= 0) return;
-  requestAnimationFrame(() => {
-    const el = document.querySelector('.categories-list');
-    if (el) el.scrollTop = pos;
-  });
-}
+let saveScrollBeforeRender = 0;
 
 function toggleCat(bankId, category) {
-  const scrollPos = saveScroll();
+  saveScrollBeforeRender = saveScroll();
   const bank = banks.find(b => b.id === bankId);
   if (!bank) return;
   const idx = bank.selectedCategories.indexOf(category);
-  if (idx >= 0) bank.selectedCategories.splice(idx, 1);
-  else bank.selectedCategories.push(category);
+  if (idx >= 0) {
+    bank.selectedCategories.splice(idx, 1);
+  } else {
+    // Check limit (only for selectable categories, not always-active)
+    const maxCat = getMaxCategories(bank);
+    if (maxCat > 0 && !isAlwaysActiveCategory(bank, category)) {
+      const selCount = getSelectableSelectedCount(bank);
+      if (selCount >= maxCat) {
+        showToast('Лимит ' + maxCat + ' категорий достигнут');
+        restoreScroll(saveScrollBeforeRender);
+        return;
+      }
+    }
+    bank.selectedCategories.push(category);
+  }
   bank.updatedAt = new Date().toISOString();
   invalidateRecommendation();
   saveData(); render();
-  restoreScroll(scrollPos);
+  restoreScroll(saveScrollBeforeRender);
 }
 
 function toggleExpand(bankId) {
