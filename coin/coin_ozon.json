@@ -1,0 +1,84 @@
+{
+  "coinVersion": "2.0",
+  "created": "2026-04-01T12:00:00+03:00",
+  "provider": {
+    "name": "Озон Банк",
+    "website": "https://www.ozonbank.ru",
+    "notes": "Дебетовая карта с выбором 4 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки. Дополнительные категории доступны с Premium-подпиской."
+  },
+  "cashback": {
+    "entries": [
+      {
+        "category": "Tasty Coffee",
+        "percent": 50,
+        "notes": [1]
+      },
+      {
+        "category": "Искусство",
+        "percent": 25,
+        "notes": [1]
+      },
+      {
+        "category": "РИВ ГОШ",
+        "percent": 10,
+        "notes": [1]
+      },
+      {
+        "category": "Аптеки",
+        "percent": 7,
+        "notes": [1]
+      },
+      {
+        "category": "Яндекс Лавка",
+        "percent": 7,
+        "notes": [1]
+      },
+      {
+        "category": "Супермаркеты",
+        "percent": 3,
+        "notes": [1]
+      },
+      {
+        "category": "Такси",
+        "percent": 5,
+        "notes": [1]
+      },
+      {
+        "category": "Топливо и АЗС",
+        "percent": 5,
+        "notes": [1]
+      },
+      {
+        "category": "Транспорт",
+        "percent": 5,
+        "notes": [1]
+      },
+      {
+        "category": "Фастфуд",
+        "percent": 5,
+        "notes": [1]
+      },
+      {
+        "category": "На все покупки",
+        "percent": 1,
+        "notes": [2]
+      }
+    ]
+  },
+  "notes": [
+    {
+      "id": 1,
+      "note": "Категория доступна для выбора (можно выбрать 4 из списка на месяц)."
+    },
+    {
+      "id": 2,
+      "note": "Всегда действующий кэшбэк на все покупки. Для добавления 5-й категории требуется Premium-подписка."
+    }
+  ],
+  "links": [
+    {
+      "id": 1,
+      "link": "https://www.ozonbank.ru/"
+    }
+  ]
+}
