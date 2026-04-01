@@ -170,6 +170,11 @@
       font-size: 11px; font-weight: 600; color: #fff;
     }
     .badge svg { width: 13px; height: 13px; }
+    .rec-badge {
+      background: #eab308; color: #000; font-size: 10px; font-weight: 700;
+      padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+      letter-spacing: 0.5px;
+    }
 
     /* ── Categories ── */
     .categories { padding: 0 16px 16px; border-top: 1px solid var(--border); margin-top: 10px; padding-top: 14px; }
@@ -188,6 +193,12 @@
     .cat-row.checked {
       background: color-mix(in srgb, var(--bank-color, var(--green)) 6%, transparent);
       border-color: color-mix(in srgb, var(--bank-color, var(--green)) 35%, transparent);
+    }
+    .cat-row.recommended {
+      border-left: 3px solid #eab308;
+    }
+    .cat-row.recommended.checked {
+      border-left: 3px solid #eab308;
     }
     .cat-checkbox {
       width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
@@ -627,7 +638,66 @@ const ICONS = {
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
   download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
   upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
 };
+
+// ─── Recommendation Algorithm ──────────────────────────────────────────────────
+
+function getMaxCategories(bank) {
+  const notes = bank.coinData.notes || [];
+  for (const note of notes) {
+    const m = note.note.match(/можно выбрать\s+(\d+)\s+из/);
+    if (m) return parseInt(m[1]);
+  }
+  return 5;
+}
+
+function getAlwaysActiveCats(bank) {
+  const result = [];
+  const notes = bank.coinData.notes || [];
+  for (const note of notes) {
+    if (note.note.toLowerCase().includes('всегда действующий')) {
+      for (const entry of bank.coinData.cashback.entries) {
+        if ((entry.notes || []).includes(note.id)) result.push(entry.category);
+      }
+    }
+  }
+  return result;
+}
+
+function calculateRecommendation() {
+  const bankCaps = {}, bankUsed = {}, alwaysActive = {};
+  for (const bank of banks) {
+    bankCaps[bank.id] = getMaxCategories(bank);
+    bankUsed[bank.id] = new Set(getAlwaysActiveCats(bank));
+    alwaysActive[bank.id] = new Set(getAlwaysActiveCats(bank));
+  }
+  const catGroups = {};
+  for (const bank of banks) {
+    for (const entry of bank.coinData.cashback.entries) {
+      if (!catGroups[entry.category]) catGroups[entry.category] = [];
+      catGroups[entry.category].push({ bankId: bank.id, percent: entry.percent });
+    }
+  }
+  for (const cat of Object.keys(catGroups)) catGroups[cat].sort((a, b) => b.percent - a.percent);
+  const sortedCats = Object.entries(catGroups).map(([name, opts]) => ({ name, opts, maxPct: opts[0].percent })).sort((a, b) => b.maxPct - a.maxPct);
+  for (const { name, opts } of sortedCats) {
+    if (opts.every(o => alwaysActive[o.bankId]?.has(name))) continue;
+    for (const opt of opts) {
+      const discUsed = bankUsed[opt.bankId].size - alwaysActive[opt.bankId].size;
+      if (discUsed < bankCaps[opt.bankId]) { bankUsed[opt.bankId].add(name); break; }
+    }
+  }
+  return bankUsed;
+}
+
+let _cachedRecommendation = null;
+function getRecommendation() { if (!_cachedRecommendation) _cachedRecommendation = calculateRecommendation(); return _cachedRecommendation; }
+function invalidateRecommendation() { _cachedRecommendation = null; }
+
+// ─── Scroll helpers ──────────────────────────────────────────────────────────────
+function saveScroll() { const el = document.querySelector('.categories-list'); return el ? el.scrollTop : 0; }
+function restoreScroll(pos) { if (pos <= 0) return; requestAnimationFrame(() => { const el = document.querySelector('.categories-list'); if (el) el.scrollTop = pos; }); }
 
 // ─── Tab Switching ─────────────────────────────────────────────────────────────
 function switchTab(tab) {
@@ -668,8 +738,11 @@ function renderSelected(app) {
     }
   }
 
-  // Sort alphabetically by category
-  items.sort((a, b) => a.category.localeCompare(b.category, 'ru'));
+  // Sort alphabetically by category, then by bank name
+  items.sort((a, b) => {
+    const cmp = a.category.localeCompare(b.category, 'ru');
+    return cmp !== 0 ? cmp : a.bankName.localeCompare(b.bankName, 'ru');
+  });
 
   if (items.length === 0) {
     app.innerHTML = '<div class="sel-empty"><div style="width:56px;height:56px">' + ICONS.check + '</div><p>Нет выбранных категорий.<br>Перейдите на вкладку «Банки», чтобы выбрать категории кэшбэка.</p></div>';
@@ -750,6 +823,7 @@ function renderBanks(app) {
     html += '</div></div></div>';
 
     if (isExp) {
+      const rec = getRecommendation()[bank.id] || new Set();
       html += '<div class="categories">';
       html += '<div class="categories-header"><span class="categories-month">' + formatMonth(bank.month) + '</span>';
       html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:14px;height:14px">' + ICONS.refresh + '</span>Новый месяц</button>';
@@ -757,13 +831,14 @@ function renderBanks(app) {
 
       for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
         const isSel = bank.selectedCategories.includes(entry.category);
+        const isRec = rec.has(entry.category);
         const entryNotes = (entry.notes || []).map(nid => notesMap[nid]).filter(Boolean);
         const entryLinks = (entry.links || []).map(lid => linksMap[lid]).filter(Boolean);
         const escCat = escHtml(entry.category).replace(/'/g, "\\'");
 
-        html += '<div class="cat-row' + (isSel ? ' checked' : '') + '" onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')">';
+        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + '" onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')">';
         html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
-        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + '</div>';
+        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="width:13px;height:13px;vertical-align:middle;margin-left:2px">' + ICONS.bolt + '</span>' : '') + '</div>';
         html += '<div class="cat-details"><span class="cat-percent ' + percentClass(entry.percent) + '">' + entry.percent + '%</span>';
         if (entry.limit !== undefined) {
           html += '<span class="cat-limit">до ' + entry.limit.toLocaleString('ru-RU') + ' ₽/мес</span>';
@@ -810,6 +885,7 @@ function toggleCat(bankId, category) {
   if (idx >= 0) bank.selectedCategories.splice(idx, 1);
   else bank.selectedCategories.push(category);
   bank.updatedAt = new Date().toISOString();
+  invalidateRecommendation();
   saveData(); render();
   restoreScroll(scrollPos);
 }
