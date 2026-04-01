@@ -129,8 +129,8 @@
     .sel-item-info { flex: 1; min-width: 0; }
     .sel-item-cat { font-size: 15px; font-weight: 500; }
     .sel-item-bank-row { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
-    .sel-item-bank { font-size: 14px; font-weight: 800; -webkit-text-stroke: 0.5px var(--stroke-color); text-shadow: 0 1px 4px var(--shadow-color); }
-    .sel-item-pct { font-size: 20px; font-weight: 900; flex-shrink: 0; -webkit-text-stroke: 0.4px var(--stroke-color); text-shadow: 0 1px 4px var(--shadow-color); }
+    .sel-item-bank { font-size: 14px; font-weight: 900; -webkit-text-stroke: 0.8px var(--stroke-color); text-shadow: 0 1px 6px var(--shadow-color), 0 0 8px var(--shadow-color); }
+    .sel-item-pct { font-size: 20px; font-weight: 900; flex-shrink: 0; -webkit-text-stroke: 0.7px var(--stroke-color); text-shadow: 0 1px 6px var(--shadow-color), 0 0 8px var(--shadow-color); }
     .sel-item-limit { font-size: 11px; color: var(--text-muted); }
     .sel-empty {
       display: flex; flex-direction: column; align-items: center;
@@ -147,6 +147,8 @@
       transition: all 0.2s ease;
     }
     .bank-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    .bank-card.empty-alert { border-color: color-mix(in srgb, #eab308 50%, var(--border)); }
+    .bank-card.empty-alert:hover { border-color: color-mix(in srgb, #eab308 70%, var(--border)); }
     .bank-card.selected { border-color: color-mix(in srgb, var(--bank-color, var(--green)) 40%, transparent); }
     .bank-card.expanded { border-color: var(--bank-color, var(--green)); box-shadow: 0 0 20px color-mix(in srgb, var(--bank-color, var(--green)) 15%, transparent); }
     .bc-header { padding: 14px 16px; }
@@ -276,6 +278,60 @@
     .cat-limit-progress-fill.full { background: var(--yellow); }
     .cat-limit-progress-fill.over { background: var(--red); }
 
+    /* ── Dop Categories ── */
+    .dop-tag {
+      display: inline-flex; align-items: center;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+      color: var(--text-sec);
+      background: rgba(255,255,255,0.06);
+      padding: 1px 5px; border-radius: 4px; margin-left: 4px;
+    }
+    .dop-section-title {
+      font-size: 13px; font-weight: 600; color: var(--text-sec); margin-bottom: 8px;
+    }
+    .dop-new-row {
+      display: flex; gap: 8px; align-items: center;
+      margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+    }
+    .dop-input {
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: var(--bg-input);
+      color: var(--text); font-size: 14px; font-family: var(--font); outline: none;
+    }
+    .dop-input:focus { border-color: var(--green); }
+    .dop-input::placeholder { color: var(--text-muted); }
+    .dop-cat-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    }
+    .dop-cat-item:hover { border-color: var(--border-hi); }
+    .dop-cat-name { flex: 1; font-size: 14px; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dop-cat-base { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+    .dop-cat-input {
+      width: 52px; padding: 6px 8px; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--bg-input);
+      color: var(--text); font-size: 13px; font-family: var(--font);
+      text-align: center; outline: none;
+    }
+    .dop-cat-input:focus { border-color: var(--green); }
+    .dop-cat-input::placeholder { color: var(--text-muted); }
+    .dop-cat-total { font-size: 14px; font-weight: 700; color: var(--green); white-space: nowrap; }
+    .dop-cat-remove {
+      width: 26px; height: 26px; border-radius: 6px; border: none;
+      background: transparent; color: var(--red); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-family: var(--font); padding: 0; flex-shrink: 0;
+    }
+    .dop-cat-remove:hover { background: rgba(239,68,68,0.1); }
+    .dop-custom-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px; border-radius: var(--radius-sm);
+      border: 1px solid color-mix(in srgb, var(--green) 30%, var(--border));
+      background: color-mix(in srgb, var(--green) 3%, transparent);
+    }
+    .dop-custom-name { flex: 1; font-size: 14px; font-weight: 500; }
+    .dop-custom-pct { font-size: 14px; font-weight: 700; color: var(--green); }
+
     /* ── Empty ── */
     .empty {
       display: flex; flex-direction: column; align-items: center;
@@ -302,6 +358,10 @@
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     .modal-header { padding: 20px 20px 0; }
     .modal-title { font-size: 17px; font-weight: 600; }
+    .modal-dop-badge {
+      display: inline-block; font-size: 11px; font-weight: 600; color: #eab308;
+      background: rgba(234,179,8,0.1); padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+    }
     .modal-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
     .modal-body { padding: 16px 20px; }
     .modal-footer { padding: 12px 20px 20px; display: flex; justify-content: flex-end; gap: 8px; }
@@ -480,6 +540,30 @@
         <button class="action-card" onclick="handleDuplicate('cancel')">
           <div class="action-card-title">Отмена</div>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Dop Categories Modal ── -->
+  <div class="overlay hidden" id="dopModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Доп. категории</div>
+        <div class="modal-desc" id="dopBankName"></div>
+      </div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:0">
+        <div class="dop-section-title">Новая категория</div>
+        <div class="dop-new-row">
+          <input type="text" id="dopNewName" class="dop-input" placeholder="Название" style="flex:1;min-width:0">
+          <input type="number" id="dopNewPercent" class="dop-input" placeholder="%" style="width:56px;text-align:center" min="0" step="0.1">
+          <button class="btn btn-primary btn-sm" onclick="addCustomCat()" style="min-height:36px;padding:6px 12px;font-size:15px">＋</button>
+        </div>
+        <div id="dopCustomList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+        <div class="dop-section-title">Доп. % к категориям банка</div>
+        <div id="dopCategoryList" style="display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow-y:auto"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeDopModal()">Готово</button>
       </div>
     </div>
   </div>
@@ -677,6 +761,132 @@ const ICONS = {
   bolt: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
 };
 
+// ─── Dop Categories ─────────────────────────────────────────────────────────────
+let dopBankId = null;
+
+function openDopModal(bankId) {
+  dopBankId = bankId;
+  document.getElementById('dopNewName').value = '';
+  document.getElementById('dopNewPercent').value = '';
+  renderDopModal();
+  document.getElementById('dopModal').classList.remove('hidden');
+}
+
+function closeDopModal() {
+  document.getElementById('dopModal').classList.add('hidden');
+  dopBankId = null;
+  invalidateRecommendation();
+  saveData(); render();
+}
+
+function renderDopModal() {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank) return;
+  document.getElementById('dopBankName').textContent = bank.coinData.provider.name;
+  const extras = bank.customExtras || {};
+  const customs = bank.customCategories || [];
+
+  // Render custom categories list
+  const customList = document.getElementById('dopCustomList');
+  if (customs.length === 0) {
+    customList.innerHTML = '';
+  } else {
+    let html = '';
+    for (const cat of customs) {
+      const escCat = escHtml(cat.name).replace(/'/g, "\\'");
+      html += '<div class="dop-custom-item">';
+      html += '<span class="dop-custom-name">' + escHtml(cat.name) + '</span>';
+      html += '<span class="dop-custom-pct">' + cat.percent + '%</span>';
+      html += '<button class="dop-cat-remove" onclick="removeCustomCat(\'' + cat.id + '\')">×</button>';
+      html += '</div>';
+    }
+    customList.innerHTML = html;
+  }
+
+  // Render COIN categories with extra % inputs
+  const catList = document.getElementById('dopCategoryList');
+  let html = '';
+  for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
+    const extra = extras[entry.category] || 0;
+    const escCat = escHtml(entry.category).replace(/'/g, "\\'");
+    html += '<div class="dop-cat-item">';
+    html += '<span class="dop-cat-name">' + escHtml(entry.category) + '</span>';
+    html += '<span class="dop-cat-base">' + entry.percent + '%</span>';
+    html += '<input type="number" class="dop-cat-input" value="' + (extra || '') + '" placeholder="+" min="0" step="0.1" onchange="updateExtraPercent(\'' + escCat + '\', this.value)" onfocus="this.select()">';
+    html += '<span class="dop-cat-base">+</span>';
+    if (extra > 0) html += '<span class="dop-cat-total">= ' + (entry.percent + extra) + '%</span>';
+    if (extra > 0) html += '<button class="dop-cat-remove" onclick="removeExtraPercent(\'' + escCat + '\')">×</button>';
+    html += '</div>';
+  }
+  catList.innerHTML = html;
+}
+
+function updateExtraPercent(category, value) {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank) return;
+  if (!bank.customExtras) bank.customExtras = {};
+  const pct = parseFloat(value) || 0;
+  if (pct > 0) bank.customExtras[category] = pct;
+  else delete bank.customExtras[category];
+  saveData();
+  renderDopModal();
+}
+
+function removeExtraPercent(category) {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank || !bank.customExtras) return;
+  delete bank.customExtras[category];
+  saveData();
+  renderDopModal();
+}
+
+function addCustomCat() {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank) return;
+  const nameEl = document.getElementById('dopNewName');
+  const pctEl = document.getElementById('dopNewPercent');
+  const name = nameEl.value.trim();
+  const percent = parseFloat(pctEl.value);
+  if (!name) { showToast('Введите название'); return; }
+  if (!percent || percent <= 0) { showToast('Введите процент'); return; }
+  // Check collision with COIN categories
+  if (bank.coinData.cashback.entries.find(e => e.category === name)) {
+    showToast('Такая категория уже есть — используйте доп. % ниже'); return;
+  }
+  // Check collision with existing custom categories
+  if ((bank.customCategories || []).find(c => c.name.toLowerCase() === name.toLowerCase())) {
+    showToast('Такая доп. категория уже добавлена'); return;
+  }
+  if (!bank.customCategories) bank.customCategories = [];
+  bank.customCategories.push({ id: genId(), name, percent });
+  nameEl.value = '';
+  pctEl.value = '';
+  saveData();
+  renderDopModal();
+  nameEl.focus();
+}
+
+function removeCustomCat(catId) {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank || !bank.customCategories) return;
+  const cat = bank.customCategories.find(c => c.id === catId);
+  bank.customCategories = bank.customCategories.filter(c => c.id !== catId);
+  // Remove from selectedCategories if present
+  if (cat) {
+    const idx = bank.selectedCategories.indexOf(cat.name);
+    if (idx >= 0) bank.selectedCategories.splice(idx, 1);
+  }
+  saveData();
+  renderDopModal();
+}
+
+function getEffectivePercent(bank, category) {
+  const entry = bank.coinData.cashback.entries.find(e => e.category === category);
+  if (!entry) return 0;
+  const extra = (bank.customExtras || {})[category] || 0;
+  return entry.percent + extra;
+}
+
 // ─── Recommendation Algorithm ──────────────────────────────────────────────────
 
 function getMaxCategories(bank) {
@@ -732,9 +942,17 @@ function calculateRecommendation() {
   }
   const catGroups = {};
   for (const bank of banks) {
+    const extras = bank.customExtras || {};
+    // COIN categories with effective percent
     for (const entry of bank.coinData.cashback.entries) {
+      const effectivePct = entry.percent + (extras[entry.category] || 0);
       if (!catGroups[entry.category]) catGroups[entry.category] = [];
-      catGroups[entry.category].push({ bankId: bank.id, percent: entry.percent });
+      catGroups[entry.category].push({ bankId: bank.id, percent: effectivePct });
+    }
+    // Custom categories
+    for (const cat of (bank.customCategories || [])) {
+      if (!catGroups[cat.name]) catGroups[cat.name] = [];
+      catGroups[cat.name].push({ bankId: bank.id, percent: cat.percent });
     }
   }
   for (const cat of Object.keys(catGroups)) catGroups[cat].sort((a, b) => b.percent - a.percent);
@@ -782,17 +1000,39 @@ function renderSelected(app) {
   const items = [];
   for (const bank of banks) {
     const bc = getBankColor(bank.coinData.provider.name);
+    const extras = bank.customExtras || {};
     for (const catName of bank.selectedCategories) {
       const entry = bank.coinData.cashback.entries.find(e => e.category === catName);
-      if (!entry) continue;
-      items.push({
-        category: entry.category,
-        percent: entry.percent,
-        limit: entry.limit,
-        bankName: bank.coinData.provider.name,
-        bankColor: bc.color,
-        bankId: bank.id,
-      });
+      if (entry) {
+        const extra = extras[catName] || 0;
+        items.push({
+          category: entry.category,
+          percent: entry.percent + extra,
+          basePercent: entry.percent,
+          extra: extra,
+          limit: entry.limit,
+          bankName: bank.coinData.provider.name,
+          bankColor: bc.color,
+          bankId: bank.id,
+          isCustom: false,
+        });
+        continue;
+      }
+      // Check custom categories
+      const custom = (bank.customCategories || []).find(c => c.name === catName);
+      if (custom) {
+        items.push({
+          category: custom.name,
+          percent: custom.percent,
+          basePercent: null,
+          extra: 0,
+          limit: undefined,
+          bankName: bank.coinData.provider.name,
+          bankColor: bc.color,
+          bankId: bank.id,
+          isCustom: true,
+        });
+      }
     }
   }
 
@@ -825,13 +1065,13 @@ function renderSelected(app) {
       const cardCls = 'card-icon' + (isWhite ? ' white-card' : '');
       html += '<div class="sel-item">';
       html += renderCardIcon(item.bankName);
-      html += '<div class="sel-item-info"><div class="sel-item-cat">' + escHtml(item.category) + '</div>';
+      html += '<div class="sel-item-info"><div class="sel-item-cat">' + escHtml(item.category) + (item.isCustom ? ' <span class="dop-tag">доп.</span>' : '') + '</div>';
       html += '<div class="sel-item-bank-row"><span class="sel-item-bank" style="' + bankColorStyle(item.bankName) + '">' + escHtml(item.bankName) + '</span>';
       if (item.limit !== undefined) {
         html += '<span class="sel-item-limit">до ' + item.limit.toLocaleString('ru-RU') + ' ₽</span>';
       }
       html += '</div></div>';
-      html += '<span class="sel-item-pct" style="' + bankColorStyle(item.bankName) + '">' + item.percent + '%</span>';
+      html += '<span class="sel-item-pct" style="' + bankColorStyle(item.bankName) + '">' + item.percent + '%' + (item.extra > 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + item.basePercent + '+' + item.extra + ')</span>' : '') + '</span>';
       html += '</div>';
     }
     html += '</div>';
@@ -859,7 +1099,7 @@ function renderBanks(app) {
     const linksMap = {};
     (bank.coinData.links || []).forEach(l => { linksMap[l.id] = l.link; });
 
-    const cardCls = 'bank-card' + (selCount > 0 ? ' selected' : '') + (isExp ? ' expanded' : '');
+    const cardCls = 'bank-card' + (isExp ? ' expanded' : selCount > 0 ? ' selected' : ' empty-alert');
     html += '<div class="' + cardCls + '" style="--bank-color:' + bc.color + '">';
     html += '<div class="bc-header"><div class="bc-row"><div class="bc-info">';
     html += renderCardIcon(bank.coinData.provider.name);
@@ -888,8 +1128,10 @@ function renderBanks(app) {
       const alwaysActive = new Set(getAlwaysActiveCats(bank));
       html += '<div class="categories">';
       html += '<div class="categories-header"><span class="categories-month">' + formatMonth(bank.month) + '</span>';
-      html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:14px;height:14px">' + ICONS.refresh + '</span>Новый месяц</button>';
-      html += '</div>';
+      html += '<div style="display:flex;gap:6px">';
+      html += '<button class="btn btn-sm btn-outline" onclick="openDopModal(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.plus + '</span>Доп. категории</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.refresh + '</span>Месяц</button>';
+      html += '</div></div>';
       // Limit bar
       const limitPct = maxCat > 0 ? Math.min(100, Math.round(selCount / maxCat * 100)) : 0;
       const limitClass = maxCat === 0 ? '' : selCount >= maxCat ? (selCount > maxCat ? 'over' : 'full') : '';
@@ -906,19 +1148,22 @@ function renderBanks(app) {
       html += '<div class="categories-list">';
 
       const limitReached = maxCat > 0 && selCount >= maxCat;
+      const bankExtras = bank.customExtras || {};
       for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
         const isSel = bank.selectedCategories.includes(entry.category);
         const isRec = rec.has(entry.category);
         const isAlways = alwaysActive.has(entry.category);
         const isDisabled = !isSel && limitReached && !isAlways;
+        const extra = bankExtras[entry.category] || 0;
+        const effectivePct = entry.percent + extra;
         const entryNotes = (entry.notes || []).map(nid => notesMap[nid]).filter(Boolean);
         const entryLinks = (entry.links || []).map(lid => linksMap[lid]).filter(Boolean);
         const escCat = escHtml(entry.category).replace(/'/g, "\\'");
 
         html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
         html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
-        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + '</div>';
-        html += '<div class="cat-details"><span class="cat-percent ' + percentClass(entry.percent) + '">' + entry.percent + '%</span>';
+        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + (extra > 0 ? ' <span class="dop-tag">доп. +' + extra + '%</span>' : '') + '</div>';
+        html += '<div class="cat-details"><span class="cat-percent ' + percentClass(effectivePct) + '">' + effectivePct + '%' + (extra > 0 ? ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + entry.percent + '+' + extra + ')</span>' : '') + '</span>';
         if (entry.limit !== undefined) {
           html += '<span class="cat-limit">до ' + entry.limit.toLocaleString('ru-RU') + ' ₽/мес</span>';
         }
@@ -933,6 +1178,19 @@ function renderBanks(app) {
           for (const link of entryLinks) html += '<a href="' + escHtml(link) + '" target="_blank" rel="noopener noreferrer" class="cat-note-link"><span style="width:12px;height:12px">' + ICONS.extLink + '</span>' + escHtml(link) + '</a>';
           html += '</div>';
         }
+      }
+      // Custom categories
+      const customs = bank.customCategories || [];
+      for (const cat of customs.sort((a, b) => b.percent - a.percent)) {
+        const isSel = bank.selectedCategories.includes(cat.name);
+        const isRec = rec.has(cat.name);
+        const isDisabled = !isSel && limitReached;
+        const escCat = escHtml(cat.name).replace(/'/g, "\\'");
+        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
+        html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
+        html += '<div class="cat-info"><div class="cat-name">' + escHtml(cat.name) + ' <span class="dop-tag">доп.</span>' + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + '</div>';
+        html += '<div class="cat-details"><span class="cat-percent ' + percentClass(cat.percent) + '">' + cat.percent + '%</span>';
+        html += '</div></div>';
       }
       html += '</div></div>';
     }
