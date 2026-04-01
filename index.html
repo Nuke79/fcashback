@@ -18,6 +18,15 @@
       --green: #22c55e; --green-dim: #16a34a; --red: #ef4444; --yellow: #eab308; --lime: #84cc16;
       --radius: 12px; --radius-sm: 8px;
       --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --header-bg: rgba(15,23,42,0.88); --tab-bg: rgba(15,23,42,0.92);
+      --stroke-color: rgba(255,255,255,0.3); --shadow-color: rgba(0,0,0,0.7);
+    }
+    html.light {
+      --bg: #f1f5f9; --bg-card: #ffffff; --bg-input: #ffffff; --bg-overlay: rgba(0,0,0,0.4);
+      --text: #1e293b; --text-sec: #64748b; --text-muted: #94a3b8;
+      --border: #e2e8f0; --border-hi: #cbd5e1;
+      --header-bg: rgba(241,245,249,0.88); --tab-bg: rgba(241,245,249,0.92);
+      --stroke-color: rgba(0,0,0,0.15); --shadow-color: rgba(255,255,255,0.8);
     }
     html { font-family: var(--font); background: var(--bg); color: var(--text); }
     body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: env(safe-area-inset-bottom, 0); }
@@ -28,7 +37,7 @@
     /* ── Header ── */
     .header {
       position: sticky; top: 0; z-index: 40;
-      background: rgba(15,23,42,0.88); backdrop-filter: blur(16px);
+      background: var(--header-bg); backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
       padding: 10px 16px;
     }
@@ -39,7 +48,7 @@
     /* ── Bottom Tab Bar ── */
     .tab-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-      background: rgba(15,23,42,0.92); backdrop-filter: blur(16px);
+      background: var(--tab-bg); backdrop-filter: blur(16px);
       border-top: 1px solid var(--border);
       display: flex; padding: 6px 8px;
       padding-bottom: max(6px, env(safe-area-inset-bottom, 6px));
@@ -113,15 +122,15 @@
     .sel-item {
       display: flex; align-items: center; gap: 12px;
       padding: 14px 14px; border-radius: var(--radius-sm);
-      background: #253552; border: 1px solid var(--border);
+      background: var(--bg-card); border: 1px solid var(--border);
       margin-bottom: 6px; transition: border-color 0.15s;
     }
     .sel-item:hover { border-color: var(--border-hi); }
     .sel-item-info { flex: 1; min-width: 0; }
     .sel-item-cat { font-size: 15px; font-weight: 500; }
     .sel-item-bank-row { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
-    .sel-item-bank { font-size: 13px; font-weight: 600; -webkit-text-stroke: 0.4px rgba(255,255,255,0.25); text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
-    .sel-item-pct { font-size: 18px; font-weight: 800; flex-shrink: 0; -webkit-text-stroke: 0.3px rgba(255,255,255,0.2); text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+    .sel-item-bank { font-size: 14px; font-weight: 800; -webkit-text-stroke: 0.5px var(--stroke-color); text-shadow: 0 1px 4px var(--shadow-color); }
+    .sel-item-pct { font-size: 20px; font-weight: 900; flex-shrink: 0; -webkit-text-stroke: 0.4px var(--stroke-color); text-shadow: 0 1px 4px var(--shadow-color); }
     .sel-item-limit { font-size: 11px; color: var(--text-muted); }
     .sel-empty {
       display: flex; flex-direction: column; align-items: center;
@@ -321,6 +330,10 @@
     <div class="header-row">
       <div class="header-title">Кэшбэк Ассистент</div>
       <div class="header-actions">
+        <button class="btn btn-icon" onclick="toggleTheme()" title="Сменить тему" id="themeBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="themeIconMoon"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="themeIconSun" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
         <button class="btn btn-icon" onclick="exportBackup()" title="Экспорт">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </button>
@@ -427,6 +440,29 @@
   </div>
 
 <script>
+// ─── Theme Toggle ────────────────────────────────────────────────────────────────
+const THEME_KEY = 'cashback-theme';
+
+function toggleTheme() {
+  const isLight = document.documentElement.classList.toggle('light');
+  localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
+  document.getElementById('themeIconMoon').style.display = isLight ? 'none' : '';
+  document.getElementById('themeIconSun').style.display = isLight ? '' : 'none';
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = isLight ? '#f1f5f9' : '#0f172a';
+}
+
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === 'light') {
+    document.documentElement.classList.add('light');
+    document.getElementById('themeIconMoon').style.display = 'none';
+    document.getElementById('themeIconSun').style.display = '';
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = '#f1f5f9';
+  }
+}
+
 // ─── Service Worker ──────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(() => {}); }
 
@@ -834,6 +870,7 @@ document.querySelectorAll('.overlay').forEach(overlay => {
 
 // ─── Init ───────────────────────────────────────────────────────────────────────
 (function init() {
+  initTheme();
   const stored = loadData();
   if (stored) { banks = stored; }
   else {
