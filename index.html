@@ -114,11 +114,7 @@
     .sel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
     .sel-title { font-size: 15px; font-weight: 600; color: var(--text-sec); }
     .sel-count { font-size: 13px; color: var(--text-muted); }
-    .sel-group { margin-bottom: 20px; }
-    .sel-group-letter {
-      font-size: 13px; font-weight: 700; color: var(--text-muted);
-      padding: 8px 4px 4px; letter-spacing: 1px;
-    }
+    .sel-group { margin-bottom: 6px; }
     .sel-item {
       display: flex; align-items: center; gap: 12px;
       padding: 14px 14px; border-radius: var(--radius-sm);
@@ -161,6 +157,7 @@
       font-size: 12px; color: var(--text-muted); text-decoration: none;
       margin-top: 3px; transition: color 0.15s;
     }
+    .bc-website:visited { color: var(--text-muted); }
     .bc-website:hover { color: var(--bank-color, var(--green)); }
     .bc-website svg { width: 12px; height: 12px; }
     .bc-desc { font-size: 12px; color: var(--text-muted); margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -331,6 +328,20 @@
     }
     .dop-custom-name { flex: 1; font-size: 14px; font-weight: 500; }
     .dop-custom-pct { font-size: 14px; font-weight: 700; color: var(--green); }
+    .dop-excl-toggle {
+      display: flex; align-items: center; gap: 4px; cursor: pointer;
+      font-size: 11px; color: var(--text-muted); white-space: nowrap;
+      padding: 3px 6px; border-radius: 4px; border: none; background: transparent;
+      font-family: var(--font); transition: all 0.15s; flex-shrink: 0;
+    }
+    .dop-excl-toggle:hover { color: var(--text-sec); background: rgba(255,255,255,0.04); }
+    .dop-excl-toggle.active { color: var(--green); }
+    .dop-excl-toggle svg { width: 13px; height: 13px; }
+    .cat-row.excluded .cat-name::after {
+      content: '∞';
+      font-size: 10px; font-weight: 700; color: var(--text-muted);
+      margin-left: 4px;
+    }
 
     /* ── Empty ── */
     .empty {
@@ -416,6 +427,11 @@
     /* ── Tab Panels ── */
     .panel { display: none; }
     .panel.active { display: block; }
+
+    /* ── Tab Swipe Animation ── */
+    .main { transition: opacity 0.15s ease, transform 0.15s ease; }
+    .main.slide-out-left { opacity: 0; transform: translateX(-30px); }
+    .main.slide-out-right { opacity: 0; transform: translateX(30px); }
 
     /* ── Responsive ── */
     @media (min-width: 641px) {
@@ -727,8 +743,66 @@ let pendingCoinData = null;
 function genId() { return Date.now().toString(36) + Math.random().toString(36).substring(2); }
 function getCurrentMonth() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 function formatMonth(m) { const [y,mo] = m.split('-'); return MONTH_NAMES[parseInt(mo)-1] + ' ' + y; }
-function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify({ banks })); }
-function loadData() { try { const s = localStorage.getItem(STORAGE_KEY); if (s) { const p = JSON.parse(s); if (Array.isArray(p.banks) && p.banks.length > 0) return p.banks; } } catch(e) {} return null; }
+const BACKUP_KEY = 'cashback-app-backup';
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ banks }));
+  // Auto-backup: save selections separately for recovery
+  const selections = {};
+  for (const bank of banks) {
+    if (bank.selectedCategories && bank.selectedCategories.length > 0) {
+      selections[bank.coinData.provider.name] = {
+        s: bank.selectedCategories, m: bank.month,
+        mx: bank.maxSelectable !== undefined && bank.maxSelectable !== null ? bank.maxSelectable : undefined,
+        e: (bank.customExtras && Object.keys(bank.customExtras).length > 0) ? bank.customExtras : undefined,
+        c: (bank.customCategories && bank.customCategories.length > 0) ? bank.customCategories : undefined,
+      };
+    }
+  }
+  localStorage.setItem(BACKUP_KEY, JSON.stringify(selections));
+}
+function loadData() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) {
+      const p = JSON.parse(s);
+      if (Array.isArray(p.banks) && p.banks.length > 0) {
+        for (const bank of p.banks) {
+          if (!bank.customExtras) bank.customExtras = {};
+          if (!bank.customCategories) bank.customCategories = [];
+        }
+        return p.banks;
+      }
+    }
+  } catch(e) { console.warn('loadData error:', e); }
+  return null;
+}
+function tryRecoverSelections() {
+  try {
+    const backup = localStorage.getItem(BACKUP_KEY);
+    if (!backup) return false;
+    const selections = JSON.parse(backup);
+    const bankNames = Object.keys(selections);
+    if (bankNames.length === 0) return false;
+    let recovered = 0;
+    for (const bank of banks) {
+      const name = bank.coinData.provider.name;
+      if (selections[name]) {
+        const sel = selections[name];
+        const validCats = bank.coinData.cashback.entries.map(e => e.category);
+        const customCats = (sel.c || []).map(c => c.name);
+        const allValid = [...validCats, ...customCats];
+        bank.selectedCategories = (sel.s || []).filter(c => allValid.includes(c));
+        if (sel.m) bank.month = sel.m;
+        if (sel.mx !== undefined) bank.maxSelectable = sel.mx;
+        if (sel.e) bank.customExtras = sel.e;
+        if (sel.c) bank.customCategories = sel.c;
+        recovered += bank.selectedCategories.length;
+      }
+    }
+    if (recovered > 0) { saveData(); showToast('Восстановлено ' + recovered + ' катег. из бэкапа'); return true; }
+  } catch(e) { console.warn('Recovery error:', e); }
+  return false;
+}
 
 function validateCoin(data) {
   if (!data || typeof data !== 'object') return { valid: false, error: 'Неверный формат данных' };
@@ -805,16 +879,24 @@ function renderDopModal() {
 
   // Render COIN categories with extra % inputs
   const catList = document.getElementById('dopCategoryList');
+  const excludeList = bank.excludeFromLimit || [];
+  const autoExclude = new Set(getAlwaysActiveCats(bank));
   let html = '';
   for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
     const extra = extras[entry.category] || 0;
     const escCat = escHtml(entry.category).replace(/'/g, "\\'");
+    const isAutoExcluded = autoExclude.has(entry.category);
+    const isManualExcluded = excludeList.includes(entry.category);
+    const isExcluded = isAutoExcluded || isManualExcluded;
     html += '<div class="dop-cat-item">';
     html += '<span class="dop-cat-name">' + escHtml(entry.category) + '</span>';
     html += '<span class="dop-cat-base">' + entry.percent + '%</span>';
     html += '<input type="number" class="dop-cat-input" value="' + (extra || '') + '" placeholder="+" min="0" step="0.1" onchange="updateExtraPercent(\'' + escCat + '\', this.value)" onfocus="this.select()">';
     html += '<span class="dop-cat-base">+</span>';
     if (extra > 0) html += '<span class="dop-cat-total">= ' + (entry.percent + extra) + '%</span>';
+    html += '<button class="dop-excl-toggle' + (isExcluded ? ' active' : '') + '" onclick="toggleExcludeFromLimit(\'' + escCat + '\')" title="Не входит в лимит">';
+    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13"/></svg>';
+    html += '</button>';
     if (extra > 0) html += '<button class="dop-cat-remove" onclick="removeExtraPercent(\'' + escCat + '\')">×</button>';
     html += '</div>';
   }
@@ -880,6 +962,19 @@ function removeCustomCat(catId) {
   renderDopModal();
 }
 
+function toggleExcludeFromLimit(category) {
+  const bank = banks.find(b => b.id === dopBankId);
+  if (!bank) return;
+  if (!bank.excludeFromLimit) bank.excludeFromLimit = [];
+  const idx = bank.excludeFromLimit.indexOf(category);
+  if (idx >= 0) bank.excludeFromLimit.splice(idx, 1);
+  else bank.excludeFromLimit.push(category);
+  if (bank.excludeFromLimit.length === 0) bank.excludeFromLimit = undefined;
+  invalidateRecommendation();
+  saveData();
+  renderDopModal();
+}
+
 function getEffectivePercent(bank, category) {
   const entry = bank.coinData.cashback.entries.find(e => e.category === category);
   if (!entry) return 0;
@@ -903,7 +998,8 @@ function getMaxCategories(bank) {
 
 function isAlwaysActiveCategory(bank, category) {
   const alwaysActive = new Set(getAlwaysActiveCats(bank));
-  return alwaysActive.has(category);
+  const manualExclude = new Set(bank.excludeFromLimit || []);
+  return alwaysActive.has(category) || manualExclude.has(category);
 }
 
 function getSelectableSelectedCount(bank) {
@@ -976,11 +1072,30 @@ function saveScroll() { const el = document.querySelector('.categories-list'); r
 function restoreScroll(pos) { if (pos <= 0) return; requestAnimationFrame(() => { const el = document.querySelector('.categories-list'); if (el) el.scrollTop = pos; }); }
 
 // ─── Tab Switching ─────────────────────────────────────────────────────────────
-function switchTab(tab) {
-  currentTab = tab;
-  document.getElementById('tabSelected').classList.toggle('active', tab === 'selected');
-  document.getElementById('tabBanks').classList.toggle('active', tab === 'banks');
-  render();
+function switchTab(tab, dir) {
+  if (tab === currentTab) return;
+  const app = document.getElementById('app');
+  if (dir) {
+    app.classList.add(dir === 'left' ? 'slide-out-left' : 'slide-out-right');
+    setTimeout(() => {
+      currentTab = tab;
+      document.getElementById('tabSelected').classList.toggle('active', tab === 'selected');
+      document.getElementById('tabBanks').classList.toggle('active', tab === 'banks');
+      app.classList.remove('slide-out-left', 'slide-out-right');
+      // Pre-position for entry animation
+      app.classList.add(dir === 'left' ? 'slide-out-right' : 'slide-out-left');
+      render();
+      // Remove entry class after render to trigger transition
+      requestAnimationFrame(() => {
+        app.classList.remove('slide-out-left', 'slide-out-right');
+      });
+    }, 130);
+  } else {
+    currentTab = tab;
+    document.getElementById('tabSelected').classList.toggle('active', tab === 'selected');
+    document.getElementById('tabBanks').classList.toggle('active', tab === 'banks');
+    render();
+  }
 }
 
 // ─── Render ─────────────────────────────────────────────────────────────────────
@@ -1047,20 +1162,9 @@ function renderSelected(app) {
     return;
   }
 
-  // Group by first letter
-  const groups = {};
-  for (const item of items) {
-    const letter = item.category[0].toUpperCase();
-    if (!groups[letter]) groups[letter] = [];
-    groups[letter].push(item);
-  }
-
   let html = '<div class="sel-header"><span class="sel-title">Выбранные категории</span><span class="sel-count">' + items.length + ' шт.</span></div>';
 
-  for (const [letter, gItems] of Object.entries(groups)) {
-    html += '<div class="sel-group">';
-    html += '<div class="sel-group-letter">' + escHtml(letter) + '</div>';
-    for (const item of gItems) {
+  for (const item of items) {
       const isWhite = item.bankColor === DEFAULT_COLOR.color;
       const cardCls = 'card-icon' + (isWhite ? ' white-card' : '');
       html += '<div class="sel-item">';
@@ -1073,8 +1177,6 @@ function renderSelected(app) {
       html += '</div></div>';
       html += '<span class="sel-item-pct" style="' + bankColorStyle(item.bankName) + '">' + item.percent + '%' + (item.extra > 0 ? ' <span style="font-size:11px;font-weight:400;opacity:0.6">(' + item.basePercent + '+' + item.extra + ')</span>' : '') + '</span>';
       html += '</div>';
-    }
-    html += '</div>';
   }
   app.innerHTML = html;
 }
@@ -1152,7 +1254,7 @@ function renderBanks(app) {
       for (const entry of [...bank.coinData.cashback.entries].sort((a, b) => b.percent - a.percent)) {
         const isSel = bank.selectedCategories.includes(entry.category);
         const isRec = rec.has(entry.category);
-        const isAlways = alwaysActive.has(entry.category);
+        const isAlways = isAlwaysActiveCategory(bank, entry.category);
         const isDisabled = !isSel && limitReached && !isAlways;
         const extra = bankExtras[entry.category] || 0;
         const effectivePct = entry.percent + extra;
@@ -1160,9 +1262,9 @@ function renderBanks(app) {
         const entryLinks = (entry.links || []).map(lid => linksMap[lid]).filter(Boolean);
         const escCat = escHtml(entry.category).replace(/'/g, "\\'");
 
-        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
+        html += '<div class="cat-row' + (isSel ? ' checked' : '') + (isRec ? ' recommended' : '') + (isDisabled ? ' disabled' : '') + (isAlways ? ' excluded' : '') + '"' + (isDisabled ? '' : ' onclick="toggleCat(\'' + bank.id + '\',\'' + escCat + '\')"') + '>';
         html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
-        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + (extra > 0 ? ' <span class="dop-tag">доп. +' + extra + '%</span>' : '') + '</div>';
+        html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + (extra > 0 ? ' <span class="dop-tag">доп. +' + extra + '%</span>' : '') + (isAlways && !isSel ? ' <span class="dop-tag">не в лимите</span>' : '') + '</div>';
         html += '<div class="cat-details"><span class="cat-percent ' + percentClass(effectivePct) + '">' + effectivePct + '%' + (extra > 0 ? ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + entry.percent + '+' + extra + ')</span>' : '') + '</span>';
         if (entry.limit !== undefined) {
           html += '<span class="cat-limit">до ' + entry.limit.toLocaleString('ru-RU') + ' ₽/мес</span>';
@@ -1361,6 +1463,47 @@ document.querySelectorAll('.overlay').forEach(overlay => {
   overlay.addEventListener('click', function(e) { if (e.target === this) { this.classList.add('hidden'); pendingCoinData = null; } });
 });
 
+// ─── Swipe Gesture ──────────────────────────────────────────────────────────────
+(function initSwipe() {
+  let startX = 0, startY = 0, isHorizontal = null;
+  const THRESHOLD = 80;
+  const LOCK_THRESHOLD = 12;
+
+  document.addEventListener('touchstart', function(e) {
+    // Don't detect swipes on modals, tab bar, header, or expanded bank categories
+    if (e.target.closest('.overlay:not(.hidden)') || e.target.closest('.tab-bar') || e.target.closest('.header')) return;
+    // Don't swipe when a bank card is expanded (user is interacting with categories)
+    if (expandedBankId !== null && e.target.closest('.bank-card.expanded')) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isHorizontal = null;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (startX === 0 && startY === 0) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = Math.abs(e.touches[0].clientY - startY);
+
+    if (isHorizontal === null && (Math.abs(dx) > LOCK_THRESHOLD || dy > LOCK_THRESHOLD)) {
+      isHorizontal = Math.abs(dx) > dy;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', function(e) {
+    if (!isHorizontal) { startX = 0; startY = 0; return; }
+    const dx = e.changedTouches[0].clientX - startX;
+    startX = 0; startY = 0; isHorizontal = null;
+
+    if (Math.abs(dx) < THRESHOLD) return;
+
+    if (dx < -THRESHOLD && currentTab === 'selected') {
+      switchTab('banks', 'left');
+    } else if (dx > THRESHOLD && currentTab === 'banks') {
+      switchTab('selected', 'right');
+    }
+  }, { passive: true });
+})();
+
 // ─── Init ───────────────────────────────────────────────────────────────────────
 (function init() {
   initTheme();
@@ -1372,6 +1515,8 @@ document.querySelectorAll('.overlay').forEach(overlay => {
       const v = validateCoin(data); if (!v.valid) return null;
       return { id: genId(), coinData: data, selectedCategories: [], addedAt: now, updatedAt: now, month };
     }).filter(Boolean);
+    // Try recover selections from backup before saving fresh data
+    tryRecoverSelections();
     saveData();
   }
   render();
