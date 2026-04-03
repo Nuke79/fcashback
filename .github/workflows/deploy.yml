@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches: [main, beta]
-  workflow_dispatch:  # ручной запуск через Actions tab
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,67 +11,51 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      # Определяем куда деплоить: main → корень, beta → /beta/
-      - name: Setup deploy target
-        id: setup
+      - name: Determine deploy target
+        id: target
         run: |
           if [ "${{ github.ref_name }}" = "main" ]; then
-            echo "target_path=." >> $GITHUB_OUTPUT
-            echo "branch=main (production)" >> $GITHUB_INFO
+            echo "path=." >> "$GITHUB_OUTPUT"
           else
-            echo "target_path=beta" >> $GITHUB_OUTPUT
-            echo "branch=beta (testing)" >> $GITHUB_INFO
+            echo "path=beta" >> "$GITHUB_OUTPUT"
           fi
-          echo "Deploying to: ${{ steps.setup.outputs.target_path }}"
 
-      # Получаем или создаём ветку gh-pages
-      - name: Get gh-pages branch
+      - name: Get gh-pages content
         run: |
-          git fetch origin gh-pages 2>/dev/null || true
-          if git rev-parse --verify origin/gh-pages >/dev/null 2>&1; then
-            echo "gh-pages exists, checking out as worktree"
-            git worktree add out gh-pages
-          else
-            echo "gh-pages does not exist, creating orphan"
-            mkdir out
-            git worktree add --orphan out gh-pages
+          git clone --depth 1 --branch gh-pages \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" \
+            out 2>/dev/null || true
+          if [ ! -d out/.git ]; then
+            echo "gh-pages not found, creating new"
+            rm -rf out
+            git init out
+            cd out
+            git checkout -b gh-pages
+            cd ..
           fi
 
-      # Чистим целевую папку и копируем файлы
       - name: Clean and copy files
         run: |
-          TARGET="${{ steps.setup.outputs.target_path }}"
-          mkdir -p "out/$TARGET"
-
-          # Удаляем старые файлы (но сохраняем другие подпапки)
+          TARGET="${{ steps.target.outputs.path }}"
           if [ "$TARGET" = "." ]; then
-            echo "Cleaning root, keeping /beta/"
             cd out
-            ls -A | grep -v '^beta$' | grep -v '^.git' | while read f; do
-              rm -rf "$f"
-            done
+            find . -maxdepth 1 ! -name '.' ! -name 'beta' ! -name '.git' -exec rm -rf {} +
             cd ..
           else
-            echo "Cleaning /$TARGET/"
-            rm -rf "out/$TARGET"
-            mkdir -p "out/$TARGET"
+            rm -rf "out/beta"
+            mkdir -p "out/beta"
           fi
-
-          # Копируем файлы приложения
+          mkdir -p "out/$TARGET"
           cp index.html sw.js manifest.json icon-192.png "out/$TARGET/"
-
-          # Добавляем .nojekyll (нужен чтобы GitHub Pages не обрабатывал Jekyll)
-          touch "out/.nojekyll"
-
-          echo "=== Files in target ==="
+          touch out/.nojekyll
+          echo "=== Deployed files ==="
           ls -la "out/$TARGET/"
 
-      # Коммитим и пушим в gh-pages
       - name: Commit and push
         working-directory: out
         run: |
@@ -81,7 +65,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to deploy"
           else
-            git commit -m "deploy: ${{ github.ref_name }} @ ${{ github.sha }}"
-            git push origin gh-pages
+            git commit -m "deploy ${{ github.ref_name }} @ ${{ github.sha }}"
+            git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" gh-pages
             echo "Deployed successfully!"
           fi
