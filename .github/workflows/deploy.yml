@@ -1,0 +1,87 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, beta]
+  workflow_dispatch:  # ручной запуск через Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Определяем куда деплоить: main → корень, beta → /beta/
+      - name: Setup deploy target
+        id: setup
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "target_path=." >> $GITHUB_OUTPUT
+            echo "branch=main (production)" >> $GITHUB_INFO
+          else
+            echo "target_path=beta" >> $GITHUB_OUTPUT
+            echo "branch=beta (testing)" >> $GITHUB_INFO
+          fi
+          echo "Deploying to: ${{ steps.setup.outputs.target_path }}"
+
+      # Получаем или создаём ветку gh-pages
+      - name: Get gh-pages branch
+        run: |
+          git fetch origin gh-pages 2>/dev/null || true
+          if git rev-parse --verify origin/gh-pages >/dev/null 2>&1; then
+            echo "gh-pages exists, checking out as worktree"
+            git worktree add out gh-pages
+          else
+            echo "gh-pages does not exist, creating orphan"
+            mkdir out
+            git worktree add --orphan out gh-pages
+          fi
+
+      # Чистим целевую папку и копируем файлы
+      - name: Clean and copy files
+        run: |
+          TARGET="${{ steps.setup.outputs.target_path }}"
+          mkdir -p "out/$TARGET"
+
+          # Удаляем старые файлы (но сохраняем другие подпапки)
+          if [ "$TARGET" = "." ]; then
+            echo "Cleaning root, keeping /beta/"
+            cd out
+            ls -A | grep -v '^beta$' | grep -v '^.git' | while read f; do
+              rm -rf "$f"
+            done
+            cd ..
+          else
+            echo "Cleaning /$TARGET/"
+            rm -rf "out/$TARGET"
+            mkdir -p "out/$TARGET"
+          fi
+
+          # Копируем файлы приложения
+          cp index.html sw.js manifest.json icon-192.png "out/$TARGET/"
+
+          # Добавляем .nojekyll (нужен чтобы GitHub Pages не обрабатывал Jekyll)
+          touch "out/.nojekyll"
+
+          echo "=== Files in target ==="
+          ls -la "out/$TARGET/"
+
+      # Коммитим и пушим в gh-pages
+      - name: Commit and push
+        working-directory: out
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to deploy"
+          else
+            git commit -m "deploy: ${{ github.ref_name }} @ ${{ github.sha }}"
+            git push origin gh-pages
+            echo "Deployed successfully!"
+          fi
