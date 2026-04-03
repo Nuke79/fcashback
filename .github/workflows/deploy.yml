@@ -11,8 +11,6 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
 
@@ -20,52 +18,22 @@ jobs:
         id: target
         run: |
           if [ "${{ github.ref_name }}" = "main" ]; then
-            echo "path=." >> "$GITHUB_OUTPUT"
+            echo "dir=." >> "$GITHUB_OUTPUT"
           else
-            echo "path=beta" >> "$GITHUB_OUTPUT"
+            echo "dir=beta" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Get gh-pages content
+      - name: Prepare files
         run: |
-          git clone --depth 1 --branch gh-pages \
-            "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" \
-            out 2>/dev/null || true
-          if [ ! -d out/.git ]; then
-            echo "gh-pages not found, creating new"
-            rm -rf out
-            git init out
-            cd out
-            git checkout -b gh-pages
-            cd ..
-          fi
+          mkdir -p deploy
+          cp index.html sw.js manifest.json icon-192.png deploy/
+          touch deploy/.nojekyll
 
-      - name: Clean and copy files
-        run: |
-          TARGET="${{ steps.target.outputs.path }}"
-          if [ "$TARGET" = "." ]; then
-            cd out
-            find . -maxdepth 1 ! -name '.' ! -name 'beta' ! -name '.git' -exec rm -rf {} +
-            cd ..
-          else
-            rm -rf "out/beta"
-            mkdir -p "out/beta"
-          fi
-          mkdir -p "out/$TARGET"
-          cp index.html sw.js manifest.json icon-192.png "out/$TARGET/"
-          touch out/.nojekyll
-          echo "=== Deployed files ==="
-          ls -la "out/$TARGET/"
-
-      - name: Commit and push
-        working-directory: out
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --staged --quiet; then
-            echo "No changes to deploy"
-          else
-            git commit -m "deploy ${{ github.ref_name }} @ ${{ github.sha }}"
-            git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" gh-pages
-            echo "Deployed successfully!"
-          fi
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./deploy
+          destination_dir: ${{ steps.target.outputs.dir }}
+          keep_files: true
+          force_orphan: true
