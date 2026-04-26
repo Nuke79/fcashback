@@ -524,7 +524,8 @@
       align-items: center; justify-content: center; transition: all 0.15s;
       font-family: var(--font); padding: 0; flex-shrink: 0;
     }
-    .help-btn:hover { border-color: var(--green); color: var(--green); background: rgba(34,197,94,0.08); }
+    .help-btn { background: #eab308; color: #000; border-color: #eab308; font-weight: 800; }
+    .help-btn:hover { background: #ca8a04; border-color: #ca8a04; color: #000; }
 
     /* ── Toast ── */
     .toast {
@@ -1654,7 +1655,16 @@ function processImport(coinData) {
     closeImportModal();
     document.getElementById('dupBankName').textContent = 'Банк «' + coinData.provider.name + '» уже добавлен.';
     document.getElementById('duplicateModal').classList.remove('hidden');
-  } else { addBank(coinData); closeImportModal(); }
+  } else {
+    const newBank = addBank(coinData);
+    closeImportModal();
+    expandedBankId = newBank.id;
+    currentTab = 'banks';
+    document.getElementById('tabSelected').classList.remove('active');
+    document.getElementById('tabBanks').classList.add('active');
+    document.getElementById('tabMCC').classList.remove('active');
+    render();
+  }
 }
 
 function addBank(coinData, keepSelections, oldBank) {
@@ -1667,7 +1677,7 @@ function addBank(coinData, keepSelections, oldBank) {
       return o && n && o.percent === n.percent;
     });
   }
-  banks.push(bank); saveData(); render();
+  banks.push(bank); saveData();
   return bank;
 }
 
