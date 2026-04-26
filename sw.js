@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cashback-v12';
+const CACHE_NAME = 'cashback-v13';
 const ASSETS = ['./index.html', './manifest.json', './icon-192.png'];
 
 // Install: cache all assets
@@ -20,7 +20,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('message', (e) => {
   if (e.data === 'skipWaiting') self.skipWaiting();
   if (e.data === 'getVersion') {
-    e.source.postMessage({ version: CACHE_NAME.replace('cashback-', '') });
+    e.source.postMessage({ version: CACHE_NAME.replace('cashback-v', '') });
   }
 });
 
