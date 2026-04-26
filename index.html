@@ -1656,14 +1656,16 @@ function processImport(coinData) {
     document.getElementById('dupBankName').textContent = 'Банк «' + coinData.provider.name + '» уже добавлен.';
     document.getElementById('duplicateModal').classList.remove('hidden');
   } else {
-    const newBank = addBank(coinData);
     closeImportModal();
+    const newBank = addBank(coinData);
+    console.log('[import] new bank added, id:', newBank.id, 'banks count:', banks.length);
     expandedBankId = newBank.id;
     currentTab = 'banks';
     document.getElementById('tabSelected').classList.remove('active');
     document.getElementById('tabBanks').classList.add('active');
     document.getElementById('tabMCC').classList.remove('active');
     render();
+    console.log('[import] rendered, expandedBankId:', expandedBankId, 'currentTab:', currentTab);
   }
 }
 
