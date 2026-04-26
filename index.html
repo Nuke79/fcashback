@@ -1444,7 +1444,7 @@ function renderSelected(app) {
       html += renderCardIcon(item.bankName);
       html += '<div class="sel-item-info"><div class="sel-item-cat">' + escHtml(item.category) + (item.isCustom ? ' <span class="dop-tag">доп.</span>' : '') + '</div>';
       html += '<div class="sel-item-bank-row"><span class="sel-item-bank" style="' + bankColorStyle(item.bankName) + '">' + escHtml(item.bankName) + '</span>';
-      if (item.limit !== undefined) {
+      if (item.limit != null) {
         html += '<span class="sel-item-limit">до ' + item.limit.toLocaleString('ru-RU') + ' ₽</span>';
       }
       html += '</div></div>';
@@ -1543,7 +1543,7 @@ function renderBanks(app) {
         html += '<div class="cat-checkbox">' + ICONS.check + '</div>';
         html += '<div class="cat-info"><div class="cat-name">' + escHtml(entry.category) + (isRec ? ' <span style="display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;color:#eab308;width:14px;height:14px">' + ICONS.bolt + '</span>' : '') + (extra > 0 ? ' <span class="dop-tag">доп. +' + extra + '%</span>' : '') + (isAlways && !isSel ? ' <span class="dop-tag">не в лимите</span>' : '') + '</div>';
         html += '<div class="cat-details"><span class="cat-percent ' + percentClass(effectivePct) + '">' + effectivePct + '%' + (extra > 0 ? ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + entry.percent + '+' + extra + ')</span>' : '') + '</span>';
-        if (entry.limit !== undefined) {
+        if (entry.limit != null) {
           html += '<span class="cat-limit">до ' + entry.limit.toLocaleString('ru-RU') + ' ₽/мес</span>';
         }
         html += '</div></div>';
