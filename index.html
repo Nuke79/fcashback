@@ -835,7 +835,7 @@ function easterEggTap() {
     }
     navigator.serviceWorker.addEventListener('message', function handler(e) {
       if (e.data && e.data.version) {
-        showToast('⚙ v' + e.data.version);
+        showToast('⚙ V' + e.data.version);
         navigator.serviceWorker.removeEventListener('message', handler);
       }
     });
