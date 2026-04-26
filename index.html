@@ -1333,7 +1333,11 @@ function restoreScroll(pos) { if (pos <= 0) return; requestAnimationFrame(() => 
 
 // ─── Tab Switching ─────────────────────────────────────────────────────────────
 function switchTab(tab, dir) {
-  if (tab === currentTab) return;
+  if (tab === currentTab) {
+    // Always re-render even if same tab (handles data changes while on same tab)
+    render();
+    return;
+  }
   const app = document.getElementById('app');
   if (dir) {
     app.classList.add(dir === 'left' ? 'slide-out-left' : 'slide-out-right');
@@ -1676,7 +1680,16 @@ function handleDuplicate(action) {
   if (newBank) expandedBankId = newBank.id;
   pendingCoinData = null;
   document.getElementById('duplicateModal').classList.add('hidden');
+  // render() already called inside addBank, but need to update UI with expandedBankId
   render();
+  // Switch to banks tab to show the imported bank
+  if (currentTab !== 'banks') {
+    currentTab = 'banks';
+    document.getElementById('tabSelected').classList.toggle('active', false);
+    document.getElementById('tabBanks').classList.toggle('active', true);
+    document.getElementById('tabMCC').classList.toggle('active', false);
+    render();
+  }
 }
 
 function handleFileUpload(event) {
