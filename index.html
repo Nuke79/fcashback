@@ -1595,11 +1595,11 @@ function renderBanks(app) {
       const alwaysActive = new Set(getAlwaysActiveCats(bank));
       html += '<div class="categories">';
       html += '<div class="categories-header"><span class="categories-month">' + formatMonth(bank.month) + '</span>';
-      html += '<div style="display:flex;gap:6px">';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
       html += '<button class="btn btn-sm btn-primary" onclick="applyRecommendations(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.bolt + '</span>Рекомендации</button>';
       html += '<button class="btn btn-sm btn-outline" onclick="copyPrevMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.clipboard + '</span>Прошлый</button>';
       html += '<button class="btn btn-sm btn-outline" onclick="openDopModal(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.plus + '</span>Доп.</button>';
-      html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.refresh + '</span>Месяц</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.refresh + '</span>Месяц</button>';
       html += '</div></div>';
       // Limit bar
       const limitPct = maxCat > 0 ? Math.min(100, Math.round(selCount / maxCat * 100)) : 0;
