@@ -1333,9 +1333,16 @@ function saveScroll() { const el = document.querySelector('.categories-list'); r
 function restoreScroll(pos) { if (pos <= 0) return; requestAnimationFrame(() => { const el = document.querySelector('.categories-list'); if (el) el.scrollTop = pos; }); }
 
 // ─── Tab Switching ─────────────────────────────────────────────────────────────
+// Switch tab button classes + state (without render)
+function switchToTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabSelected').classList.toggle('active', tab === 'selected');
+  document.getElementById('tabBanks').classList.toggle('active', tab === 'banks');
+  document.getElementById('tabMCC').classList.toggle('active', tab === 'mcc');
+}
+
 function switchTab(tab, dir) {
   if (tab === currentTab) {
-    // Always re-render even if same tab (handles data changes while on same tab)
     render();
     return;
   }
@@ -1343,10 +1350,7 @@ function switchTab(tab, dir) {
   if (dir) {
     app.classList.add(dir === 'left' ? 'slide-out-left' : 'slide-out-right');
     setTimeout(() => {
-      currentTab = tab;
-      document.getElementById('tabSelected').classList.toggle('active', tab === 'selected');
-      document.getElementById('tabBanks').classList.toggle('active', tab === 'banks');
-      document.getElementById('tabMCC').classList.toggle('active', tab === 'mcc');
+      switchToTab(tab);
       app.classList.remove('slide-out-left', 'slide-out-right');
       app.classList.add(dir === 'left' ? 'slide-out-right' : 'slide-out-left');
       render();
@@ -1355,24 +1359,27 @@ function switchTab(tab, dir) {
       });
     }, 130);
   } else {
-    currentTab = tab;
-    document.getElementById('tabSelected').classList.toggle('active', tab === 'selected');
-    document.getElementById('tabBanks').classList.toggle('active', tab === 'banks');
-    document.getElementById('tabMCC').classList.toggle('active', tab === 'mcc');
+    switchToTab(tab);
     render();
   }
 }
 
 // ─── Render ─────────────────────────────────────────────────────────────────────
 function render() {
-  const app = document.getElementById('app');
-  if (banks.length === 0) {
-    app.innerHTML = '<div class="empty"><div style="width:64px;height:64px">' + ICONS.download + '</div><p>Нет добавленных банков</p><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-primary" onclick="openImportModal()" style="gap:8px"><span style="width:18px;height:18px">' + ICONS.plus + '</span>Импорт COIN</button><button class="help-btn" onclick="openScreenshotHelp()" title="Импорт из скриншота">?</button></div></div>';
-    return;
+  try {
+    const app = document.getElementById('app');
+    if (banks.length === 0) {
+      app.innerHTML = '<div class="empty"><div style="width:64px;height:64px">' + ICONS.download + '</div><p>Нет добавленных банков</p><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-primary" onclick="openImportModal()" style="gap:8px"><span style="width:18px;height:18px">' + ICONS.plus + '</span>Импорт COIN</button><button class="help-btn" onclick="openScreenshotHelp()" title="Импорт из скриншота">?</button></div></div>';
+      return;
+    }
+    if (currentTab === 'selected') renderSelected(app);
+    else if (currentTab === 'banks') renderBanks(app);
+    else if (currentTab === 'mcc') renderMCC(app);
+  } catch (err) {
+    console.error('[render] ERROR:', err);
+    const app = document.getElementById('app');
+    if (app) app.innerHTML = '<div class="empty"><p style="color:var(--red)">⚠ Ошибка рендера: ' + escHtml(err.message) + '</p><button class="btn btn-outline" onclick="clearAll()" style="margin-top:12px">Сбросить данные</button></div>';
   }
-  if (currentTab === 'selected') renderSelected(app);
-  else if (currentTab === 'banks') renderBanks(app);
-  else if (currentTab === 'mcc') renderMCC(app);
 }
 
 // ─── Render: Selected Panel ─────────────────────────────────────────────────────
@@ -1602,7 +1609,9 @@ function toggleCat(bankId, category) {
 }
 
 function toggleExpand(bankId) {
+  console.log('[toggleExpand] bankId:', bankId, 'was:', expandedBankId, 'banks:', banks.map(b => b.id + ':' + b.coinData.provider.name));
   expandedBankId = expandedBankId === bankId ? null : bankId;
+  console.log('[toggleExpand] now expandedBankId:', expandedBankId);
   render();
 }
 
@@ -1647,26 +1656,25 @@ function switchImportTab(mode) {
 function showImportError(msg) { const el = document.getElementById('importError'); el.textContent = msg; el.classList.remove('hidden'); }
 
 function processImport(coinData) {
+  console.log('[processImport] start, provider:', coinData.provider?.name);
   const v = validateCoin(coinData);
   if (!v.valid) { showImportError(v.error); return; }
   const existing = banks.find(b => b.coinData.provider.name === coinData.provider.name);
+  console.log('[processImport] existing:', existing ? existing.id : null);
   if (existing) {
     pendingCoinData = coinData;
     closeImportModal();
     document.getElementById('dupBankName').textContent = 'Банк «' + coinData.provider.name + '» уже добавлен.';
     document.getElementById('duplicateModal').classList.remove('hidden');
-  } else {
-    closeImportModal();
-    const newBank = addBank(coinData);
-    console.log('[import] new bank added, id:', newBank.id, 'banks count:', banks.length);
-    expandedBankId = newBank.id;
-    currentTab = 'banks';
-    document.getElementById('tabSelected').classList.remove('active');
-    document.getElementById('tabBanks').classList.add('active');
-    document.getElementById('tabMCC').classList.remove('active');
-    render();
-    console.log('[import] rendered, expandedBankId:', expandedBankId, 'currentTab:', currentTab);
+    return;
   }
+  // No duplicate — add directly
+  closeImportModal();
+  const newBank = addBank(coinData);
+  expandedBankId = newBank.id;
+  switchToTab('banks');
+  console.log('[processImport] added bank id:', newBank.id, 'expandedBankId:', expandedBankId, 'tab:', currentTab, 'banks count:', banks.length);
+  render();
 }
 
 function addBank(coinData, keepSelections, oldBank) {
@@ -1684,24 +1692,25 @@ function addBank(coinData, keepSelections, oldBank) {
 }
 
 function handleDuplicate(action) {
+  console.log('[handleDuplicate] action:', action, 'pending:', pendingCoinData?.provider?.name);
   if (!pendingCoinData || action === 'cancel') { pendingCoinData = null; document.getElementById('duplicateModal').classList.add('hidden'); return; }
   const existing = banks.find(b => b.coinData.provider.name === pendingCoinData.provider.name);
   let newBank = null;
-  if (action === 'replace') { banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name); newBank = addBank(pendingCoinData, false, null); }
-  else if (action === 'keep' && existing) { banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name); newBank = addBank(pendingCoinData, true, existing); }
-  if (newBank) expandedBankId = newBank.id;
+  if (action === 'replace') {
+    banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name);
+    newBank = addBank(pendingCoinData, false, null);
+  } else if (action === 'keep' && existing) {
+    banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name);
+    newBank = addBank(pendingCoinData, true, existing);
+  }
   pendingCoinData = null;
   document.getElementById('duplicateModal').classList.add('hidden');
-  // render() already called inside addBank, but need to update UI with expandedBankId
-  render();
-  // Switch to banks tab to show the imported bank
-  if (currentTab !== 'banks') {
-    currentTab = 'banks';
-    document.getElementById('tabSelected').classList.toggle('active', false);
-    document.getElementById('tabBanks').classList.toggle('active', true);
-    document.getElementById('tabMCC').classList.toggle('active', false);
-    render();
+  if (newBank) {
+    expandedBankId = newBank.id;
+    switchToTab('banks');
+    console.log('[handleDuplicate] newBank id:', newBank.id, 'expandedBankId:', expandedBankId, 'tab:', currentTab);
   }
+  render();
 }
 
 function handleFileUpload(event) {
@@ -2251,9 +2260,7 @@ function clearBadge() {
   // Smart default tab: if no selections, go to Banks
   const totalSelected = banks.reduce((sum, b) => sum + b.selectedCategories.length, 0);
   if (totalSelected === 0 && banks.length > 0) {
-    currentTab = 'banks';
-    document.getElementById('tabSelected').classList.remove('active');
-    document.getElementById('tabBanks').classList.add('active');
+    switchToTab('banks');
   }
   render();
   updateBadge();
