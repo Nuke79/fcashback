@@ -445,6 +445,87 @@
       .btn-icon { width: 36px; height: 36px; padding: 6px; }
     }
 
+    /* ── Screenshot Help Modal ── */
+    .screenshot-steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+    .screenshot-step {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+    }
+    .screenshot-step-num {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: var(--green); color: #fff; font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .screenshot-step-text { font-size: 13px; line-height: 1.5; color: var(--text-sec); }
+    .screenshot-step-text strong { color: var(--text); }
+    .screenshot-prompt-box {
+      position: relative; margin-bottom: 12px;
+    }
+    .screenshot-prompt-label {
+      font-size: 12px; font-weight: 600; color: var(--text-sec); margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .screenshot-prompt-text {
+      width: 100%; min-height: 120px; padding: 12px;
+      background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-size: 12px; font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      line-height: 1.5; resize: none; outline: none;
+    }
+    html.light .screenshot-prompt-text { background: rgba(0,0,0,0.04); }
+    .screenshot-copy-btn {
+      position: absolute; top: 28px; right: 8px;
+      padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg-card); color: var(--text-sec); cursor: pointer;
+      font-size: 11px; font-weight: 500; display: flex; align-items: center; gap: 4px;
+      font-family: var(--font); transition: all 0.15s;
+    }
+    .screenshot-copy-btn:hover { border-color: var(--green); color: var(--green); }
+    .screenshot-copy-btn svg { width: 14px; height: 14px; }
+    .screenshot-links {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;
+    }
+    .screenshot-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text); font-size: 13px; text-decoration: none;
+      cursor: pointer; font-family: var(--font); transition: all 0.15s;
+    }
+    .screenshot-link:hover { border-color: var(--green); color: var(--green); background: rgba(34,197,94,0.05); }
+    .screenshot-link svg { width: 16px; height: 16px; }
+    .screenshot-example-toggle {
+      padding: 6px 0; border: none; background: transparent;
+      color: var(--text-muted); font-size: 12px; cursor: pointer;
+      font-family: var(--font); display: flex; align-items: center; gap: 4px;
+      transition: color 0.15s;
+    }
+    .screenshot-example-toggle:hover { color: var(--text-sec); }
+    .screenshot-example-toggle svg { width: 14px; height: 14px; transition: transform 0.2s; }
+    .screenshot-example-toggle.open svg { transform: rotate(90deg); }
+    .screenshot-example {
+      display: none; margin-top: 8px; padding: 12px;
+      background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 11px;
+      font-family: 'SF Mono', Monaco, monospace; line-height: 1.5;
+      color: var(--text-sec); max-height: 200px; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-all;
+    }
+    html.light .screenshot-example { background: rgba(0,0,0,0.03); }
+    .screenshot-example.show { display: block; }
+    .screenshot-divider {
+      height: 1px; background: var(--border); margin: 12px 0;
+    }
+    .help-btn {
+      width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted); cursor: pointer;
+      font-size: 14px; font-weight: 700; display: inline-flex;
+      align-items: center; justify-content: center; transition: all 0.15s;
+      font-family: var(--font); padding: 0; flex-shrink: 0;
+    }
+    .help-btn:hover { border-color: var(--green); color: var(--green); background: rgba(34,197,94,0.08); }
+
     /* ── Toast ── */
     .toast {
       position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
@@ -494,6 +575,10 @@
     <button class="tab-btn" id="tabBanks" onclick="switchTab('banks')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
       <span>Банки</span>
+    </button>
+    <button class="tab-btn" id="tabMCC" onclick="switchTab('mcc')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      <span>MCC</span>
     </button>
   </nav>
 
@@ -594,6 +679,106 @@
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="closeClearModal()">Отмена</button>
         <button class="btn btn-primary" style="background:var(--red)" onclick="clearAll()">Очистить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screenshot Import Help Modal ── -->
+  <div class="overlay hidden" id="screenshotHelpModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Импорт из скриншота</div>
+        <div class="modal-desc">Извлеките категории кэшбэка с помощью AI</div>
+      </div>
+      <div class="modal-body">
+        <div class="screenshot-steps">
+          <div class="screenshot-step">
+            <div class="screenshot-step-num">1</div>
+            <div class="screenshot-step-text"><strong>Сделайте скриншот</strong> категорий кэшбэка в банковском приложении</div>
+          </div>
+          <div class="screenshot-step">
+            <div class="screenshot-step-num">2</div>
+            <div class="screenshot-step-text"><strong>Откройте AI-чат</strong> и отправьте скриншот + промпт (кнопка ниже)</div>
+          </div>
+          <div class="screenshot-step">
+            <div class="screenshot-step-num">3</div>
+            <div class="screenshot-step-text"><strong>Скопируйте JSON</strong> из ответа AI и импортируйте через кнопку «COIN»</div>
+          </div>
+        </div>
+
+        <div class="screenshot-prompt-box">
+          <div class="screenshot-prompt-label">Промпт для AI (скопируйте и вставьте в чат)</div>
+          <textarea class="screenshot-prompt-text" id="screenshotPrompt" readonly>Из скриншота извлеки категории кэшбэка в формате JSON.
+Правила:
+- coinVersion: "0.9.0"
+- created: текущая дата ISO 8601
+- provider.name: название банка (по логотипу или интерфейсу)
+- provider.website: пустая строка
+- provider.notes: пустая строка
+- cashback.entries: массив категорий, каждая с полями:
+  - percent: процент кэшбэка (число)
+  - limit: месячный лимит возврата в рублях (число, если указан, иначе null)
+  - category: название категории
+  - mccs: пустой массив []
+  - notes: массив индексов (если есть условия)
+  - links: пустой массив []
+- notes: массив примечаний с полями { id (число, от 0), note (текст условия) }
+- links: пустой массив []
+
+Верни ТОЛЬКО JSON, без пояснений.</textarea>
+          <button class="screenshot-copy-btn" onclick="copyScreenshotPrompt()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Копировать
+          </button>
+        </div>
+
+        <div class="screenshot-links">
+          <a href="https://chat.deepseek.com" target="_blank" rel="noopener noreferrer" class="screenshot-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            DeepSeek
+          </a>
+          <a href="https://chatgpt.com" target="_blank" rel="noopener noreferrer" class="screenshot-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            ChatGPT
+          </a>
+          <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer" class="screenshot-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Gemini
+          </a>
+        </div>
+
+        <div class="screenshot-divider"></div>
+
+        <button class="screenshot-example-toggle" id="exampleToggle" onclick="toggleScreenshotExample()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          Пример ответа AI (COIN JSON)
+        </button>
+        <div class="screenshot-example" id="screenshotExample">{
+  "coinVersion": "0.9.0",
+  "created": "2026-04-03T12:00:00+03:00",
+  "provider": {
+    "name": "Тинькофф",
+    "website": "",
+    "notes": ""
+  },
+  "cashback": {
+    "entries": [
+      {"category": "Супермаркеты", "percent": 5, "limit": null, "mccs": [], "notes": [0], "links": []},
+      {"category": "Рестораны", "percent": 5, "limit": null, "mccs": [], "notes": [0], "links": []},
+      {"category": "АЗС", "percent": 3, "limit": 1500, "mccs": [], "notes": [1], "links": []},
+      {"category": "На все покупки", "percent": 1, "limit": null, "mccs": [], "notes": [2], "links": []}
+    ]
+  },
+  "notes": [
+    {"id": 0, "note": "Категория на выбор"},
+    {"id": 1, "note": "Кэшбэк начисляется в бонусах, лимит до 1 500 ₽"},
+    {"id": 2, "note": "Всегда действующий кэшбэк"}
+  ],
+  "links": []
+}</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeScreenshotHelp()">Закрыть</button>
       </div>
     </div>
   </div>
@@ -757,6 +942,16 @@ function saveData() {
         c: (bank.customCategories && bank.customCategories.length > 0) ? bank.customCategories : undefined,
       };
     }
+    // Save history for current month
+    const histKey = 'cashback-history-' + bank.coinData.provider.name + '-' + bank.month;
+    const histData = {
+      s: bank.selectedCategories,
+      e: bank.customExtras,
+      c: bank.customCategories,
+      mx: bank.maxSelectable,
+      ex: bank.excludeFromLimit,
+    };
+    localStorage.setItem(histKey, JSON.stringify(histData));
   }
   localStorage.setItem(BACKUP_KEY, JSON.stringify(selections));
 }
@@ -833,6 +1028,8 @@ const ICONS = {
   download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
   upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
   bolt: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+  clipboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
+  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
 };
 
 // ─── Dop Categories ─────────────────────────────────────────────────────────────
@@ -982,6 +1179,56 @@ function getEffectivePercent(bank, category) {
   return entry.percent + extra;
 }
 
+// ─── Category Grouping ─────────────────────────────────────────────────────────
+const CATEGORY_ALIASES = [
+  { substr: 'азс', group: 'АЗС' },
+  { substr: 'топливо', group: 'АЗС' },
+  { substr: 'супермаркет', group: 'Супермаркеты' },
+  { substr: 'продукт', group: 'Супермаркеты' },
+  { substr: 'пятёрочка', group: 'Супермаркеты' },
+  { substr: 'пятерочка', group: 'Супермаркеты' },
+  { substr: 'магнит', group: 'Супермаркеты' },
+  { substr: 'перекрёсток', group: 'Супермаркеты' },
+  { substr: 'дикси', group: 'Супермаркеты' },
+  { substr: 'ресторан', group: 'Рестораны' },
+  { substr: 'кафе', group: 'Рестораны' },
+  { substr: 'фастфуд', group: 'Рестораны' },
+  { substr: 'food', group: 'Рестораны' },
+  { substr: 'аптек', group: 'Аптеки/Медицина' },
+  { substr: 'медицин', group: 'Аптеки/Медицина' },
+  { substr: 'здоровье', group: 'Аптеки/Медицина' },
+  { substr: 'транспорт', group: 'Транспорт' },
+  { substr: 'такси', group: 'Транспорт' },
+  { substr: 'каршеринг', group: 'Транспорт' },
+  { substr: 'одежда', group: 'Одежда' },
+  { substr: 'обувь', group: 'Одежда' },
+  { substr: 'спорт', group: 'Спорт' },
+  { substr: 'кино', group: 'Кино' },
+  { substr: 'театр', group: 'Кино' },
+  { substr: 'книг', group: 'Книги' },
+  { substr: 'связь', group: 'Связь' },
+  { substr: 'телеком', group: 'Связь' },
+  { substr: 'мобильн', group: 'Связь' },
+  { substr: 'дом', group: 'Дом' },
+  { substr: 'ремонт', group: 'Дом' },
+  { substr: 'ювелир', group: 'Ювелирка' },
+  { substr: 'цвет', group: 'Цветы' },
+  { substr: 'финанс', group: 'Финансы' },
+  { substr: 'авто', group: 'Автомобили' },
+  { substr: 'красот', group: 'Красота' },
+  { substr: 'фитнес', group: 'Красота' },
+  { substr: 'парикмахерск', group: 'Красота' },
+  { substr: 'доставк', group: 'Доставка' },
+];
+
+function getCategoryGroup(catName) {
+  const lower = catName.toLowerCase();
+  for (const alias of CATEGORY_ALIASES) {
+    if (lower.includes(alias.substr)) return alias.group;
+  }
+  return null;
+}
+
 // ─── Recommendation Algorithm ──────────────────────────────────────────────────
 
 function getMaxCategories(bank) {
@@ -1036,28 +1283,41 @@ function calculateRecommendation() {
     bankUsed[bank.id] = new Set(getAlwaysActiveCats(bank));
     alwaysActive[bank.id] = new Set(getAlwaysActiveCats(bank));
   }
+  // Collect all categories with their bank options
   const catGroups = {};
   for (const bank of banks) {
     const extras = bank.customExtras || {};
-    // COIN categories with effective percent
     for (const entry of bank.coinData.cashback.entries) {
       const effectivePct = entry.percent + (extras[entry.category] || 0);
       if (!catGroups[entry.category]) catGroups[entry.category] = [];
       catGroups[entry.category].push({ bankId: bank.id, percent: effectivePct });
     }
-    // Custom categories
     for (const cat of (bank.customCategories || [])) {
       if (!catGroups[cat.name]) catGroups[cat.name] = [];
       catGroups[cat.name].push({ bankId: bank.id, percent: cat.percent });
     }
   }
   for (const cat of Object.keys(catGroups)) catGroups[cat].sort((a, b) => b.percent - a.percent);
-  const sortedCats = Object.entries(catGroups).map(([name, opts]) => ({ name, opts, maxPct: opts[0].percent })).sort((a, b) => b.maxPct - a.maxPct);
-  for (const { name, opts } of sortedCats) {
+
+  // Group categories to avoid duplicates (АЗС + Топливо и АЗС → one group)
+  const processedGroups = new Set();
+  const sortedCats = Object.entries(catGroups).map(([name, opts]) => {
+    const group = getCategoryGroup(name);
+    return { name, opts, maxPct: opts[0].percent, group: group };
+  }).sort((a, b) => b.maxPct - a.maxPct);
+
+  for (const { name, opts, group } of sortedCats) {
+    // Skip always-active (they're already in bankUsed)
     if (opts.every(o => alwaysActive[o.bankId]?.has(name))) continue;
+    // Skip if group already processed (another category from same group was assigned)
+    if (group && processedGroups.has(group)) continue;
     for (const opt of opts) {
       const discUsed = bankUsed[opt.bankId].size - alwaysActive[opt.bankId].size;
-      if (discUsed < bankCaps[opt.bankId]) { bankUsed[opt.bankId].add(name); break; }
+      if (discUsed < bankCaps[opt.bankId]) {
+        bankUsed[opt.bankId].add(name);
+        if (group) processedGroups.add(group);
+        break;
+      }
     }
   }
   return bankUsed;
@@ -1081,11 +1341,10 @@ function switchTab(tab, dir) {
       currentTab = tab;
       document.getElementById('tabSelected').classList.toggle('active', tab === 'selected');
       document.getElementById('tabBanks').classList.toggle('active', tab === 'banks');
+      document.getElementById('tabMCC').classList.toggle('active', tab === 'mcc');
       app.classList.remove('slide-out-left', 'slide-out-right');
-      // Pre-position for entry animation
       app.classList.add(dir === 'left' ? 'slide-out-right' : 'slide-out-left');
       render();
-      // Remove entry class after render to trigger transition
       requestAnimationFrame(() => {
         app.classList.remove('slide-out-left', 'slide-out-right');
       });
@@ -1094,6 +1353,7 @@ function switchTab(tab, dir) {
     currentTab = tab;
     document.getElementById('tabSelected').classList.toggle('active', tab === 'selected');
     document.getElementById('tabBanks').classList.toggle('active', tab === 'banks');
+    document.getElementById('tabMCC').classList.toggle('active', tab === 'mcc');
     render();
   }
 }
@@ -1102,11 +1362,12 @@ function switchTab(tab, dir) {
 function render() {
   const app = document.getElementById('app');
   if (banks.length === 0) {
-    app.innerHTML = '<div class="empty"><div style="width:64px;height:64px">' + ICONS.download + '</div><p>Нет добавленных банков</p><button class="btn btn-primary" onclick="openImportModal()" style="gap:8px"><span style="width:18px;height:18px">' + ICONS.plus + '</span>Импорт COIN</button></div>';
+    app.innerHTML = '<div class="empty"><div style="width:64px;height:64px">' + ICONS.download + '</div><p>Нет добавленных банков</p><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-primary" onclick="openImportModal()" style="gap:8px"><span style="width:18px;height:18px">' + ICONS.plus + '</span>Импорт COIN</button><button class="help-btn" onclick="openScreenshotHelp()" title="Импорт из скриншота">?</button></div></div>';
     return;
   }
   if (currentTab === 'selected') renderSelected(app);
-  else renderBanks(app);
+  else if (currentTab === 'banks') renderBanks(app);
+  else if (currentTab === 'mcc') renderMCC(app);
 }
 
 // ─── Render: Selected Panel ─────────────────────────────────────────────────────
@@ -1186,8 +1447,10 @@ function renderBanks(app) {
   const isExpanded = expandedBankId !== null;
   let html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">';
   html += '<span style="font-size:15px;color:var(--text-sec)">Банковские карты</span>';
+  html += '<div style="display:flex;align-items:center;gap:6px">';
   html += '<button class="btn btn-primary btn-sm" onclick="openImportModal()" style="gap:6px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:16px;height:16px">' + ICONS.download + '</span>COIN</button>';
-  html += '</div>';
+  html += '<button class="help-btn" onclick="openScreenshotHelp()" title="Импорт из скриншота" style="width:36px;height:36px">?</button>';
+  html += '</div></div>';
   html += '<div class="bank-grid' + (isExpanded ? ' has-expanded' : '') + '">';
 
   for (const bank of banks) {
@@ -1231,7 +1494,9 @@ function renderBanks(app) {
       html += '<div class="categories">';
       html += '<div class="categories-header"><span class="categories-month">' + formatMonth(bank.month) + '</span>';
       html += '<div style="display:flex;gap:6px">';
-      html += '<button class="btn btn-sm btn-outline" onclick="openDopModal(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.plus + '</span>Доп. категории</button>';
+      html += '<button class="btn btn-sm btn-primary" onclick="applyRecommendations(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.bolt + '</span>Рекомендации</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="copyPrevMonth(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.clipboard + '</span>Прошлый</button>';
+      html += '<button class="btn btn-sm btn-outline" onclick="openDopModal(\'' + bank.id + '\')" style="gap:4px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.plus + '</span>Доп.</button>';
       html += '<button class="btn btn-sm btn-outline" onclick="newMonth(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 10px;font-size:12px"><span style="width:14px;height:14px">' + ICONS.refresh + '</span>Месяц</button>';
       html += '</div></div>';
       // Limit bar
@@ -1327,7 +1592,7 @@ function toggleCat(bankId, category) {
   }
   bank.updatedAt = new Date().toISOString();
   invalidateRecommendation();
-  saveData(); render();
+  saveData(); render(); updateBadge();
   restoreScroll(saveScrollBeforeRender);
 }
 
@@ -1342,13 +1607,13 @@ function newMonth(bankId) {
   bank.selectedCategories = [];
   bank.month = getCurrentMonth();
   bank.updatedAt = new Date().toISOString();
-  saveData(); render();
+  saveData(); render(); updateBadge();
 }
 
 function deleteBank(bankId) {
   banks = banks.filter(b => b.id !== bankId);
   if (expandedBankId === bankId) expandedBankId = null;
-  saveData(); render();
+  saveData(); render(); updateBadge();
 }
 
 function toggleNotes(btn) {
@@ -1453,10 +1718,47 @@ function importBackup() {
   input.click();
 }
 
+// ─── Screenshot Import Help ─────────────────────────────────────────────────────
+function openScreenshotHelp() {
+  document.getElementById('screenshotHelpModal').classList.remove('hidden');
+}
+function closeScreenshotHelp() {
+  document.getElementById('screenshotHelpModal').classList.add('hidden');
+}
+function copyScreenshotPrompt() {
+  const text = document.getElementById('screenshotPrompt').value;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Промпт скопирован');
+    const btn = document.querySelector('.screenshot-copy-btn');
+    if (btn) {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Скопировано';
+      btn.style.borderColor = 'var(--green)';
+      btn.style.color = 'var(--green)';
+      setTimeout(() => {
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Копировать';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+      }, 2000);
+    }
+  }).catch(() => {
+    // Fallback for older browsers
+    const el = document.getElementById('screenshotPrompt');
+    el.select();
+    document.execCommand('copy');
+    showToast('Промпт скопирован');
+  });
+}
+function toggleScreenshotExample() {
+  const el = document.getElementById('screenshotExample');
+  const btn = document.getElementById('exampleToggle');
+  const isOpen = el.classList.toggle('show');
+  btn.classList.toggle('open', isOpen);
+}
+
 // ─── Clear ──────────────────────────────────────────────────────────────────────
 function openClearModal() { document.getElementById('clearModal').classList.remove('hidden'); }
 function closeClearModal() { document.getElementById('clearModal').classList.add('hidden'); }
-function clearAll() { banks = []; expandedBankId = null; localStorage.removeItem(STORAGE_KEY); closeClearModal(); render(); }
+function clearAll() { banks = []; expandedBankId = null; localStorage.removeItem(STORAGE_KEY); closeClearModal(); render(); clearBadge(); }
 
 // ─── Close modals on overlay click ──────────────────────────────────────────────
 document.querySelectorAll('.overlay').forEach(overlay => {
@@ -1496,13 +1798,411 @@ document.querySelectorAll('.overlay').forEach(overlay => {
 
     if (Math.abs(dx) < THRESHOLD) return;
 
-    if (dx < -THRESHOLD && currentTab === 'selected') {
-      switchTab('banks', 'left');
-    } else if (dx > THRESHOLD && currentTab === 'banks') {
-      switchTab('selected', 'right');
+    const tabs = ['selected', 'banks', 'mcc'];
+    const currentIdx = tabs.indexOf(currentTab);
+    if (dx < -THRESHOLD && currentIdx < tabs.length - 1) {
+      switchTab(tabs[currentIdx + 1], 'left');
+    } else if (dx > THRESHOLD && currentIdx > 0) {
+      switchTab(tabs[currentIdx - 1], 'right');
     }
   }, { passive: true });
 })();
+
+// ─── MCC Reference ──────────────────────────────────────────────────────────────
+const MCC_DATA = [
+  { group: 'АЗС', codes: [
+    [5541, 'Автозаправочные станции (АЗС)'],
+    [5542, 'Автоматические заправочные станции (без обслуживания)'],
+  ]},
+  { group: 'Супермаркеты', codes: [
+    [5411, 'Супермаркеты / продуктовые магазины'],
+    [5422, 'Магазины свободной торговли (дискаунтеры)'],
+    [5441, 'Молочные продукты / молочные магазины'],
+    [5451, 'Мясные / рыбные магазины'],
+    [5462, 'Пекарни / кондитерские'],
+    [5499, 'Продовольственные магазины (прочие)'],
+  ]},
+  { group: 'Рестораны', codes: [
+    [5811, 'Рестораны (полный сервис)'],
+    [5812, 'Рестораны быстрого питания'],
+    [5813, 'Напитки / бары'],
+    [5814, 'Фастфуд'],
+    [5815, 'Кафе / закусочные'],
+  ]},
+  { group: 'Аптеки/Медицина', codes: [
+    [5912, 'Аптеки'],
+    [5921, 'Лицензированные аптеки (без рецепта)'],
+    [5940, 'Велосипедные магазины'],
+    [5970, 'Художественные / ремесленные магазины'],
+    [5971, 'Художественные галереи'],
+    [7299, 'Медицинские услуги (прочие)'],
+    [8011, 'Врачи / стоматологи'],
+    [8021, 'Стоматологи / ортодонты'],
+    [8031, 'Остеопаты'],
+    [8041, 'Хiropractors'],
+    [8042, 'Оптики / офтальмологи'],
+    [8043, 'Оптика (продажа очков)'],
+    [8044, 'Оптометристы'],
+    [8049, 'Специалисты здравоохранения (прочие)'],
+    [8050, 'Дом престарелых / сестринский уход'],
+    [8062, 'Больницы'],
+    [8071, 'Лаборатории (мед.)'],
+    [8099, 'Медицинские услуги (прочие)'],
+  ]},
+  { group: 'Транспорт', codes: [
+    [4111, 'Транспорт / железные дороги'],
+    [4121, 'Такси'],
+    [4131, 'Автобусы / маршрутки'],
+    [4214, 'Грузоперевозки / курьеры'],
+    [4784, 'Платные дороги / мосты / тоннели'],
+    [4511, 'Авиакомпании'],
+    [4582, 'Аэропорты / аэровокзалы'],
+    [4789, 'Транспортные услуги (прочие)'],
+  ]},
+  { group: 'Одежда', codes: [
+    [5611, 'Мужская одежда'],
+    [5621, 'Женская одежда'],
+    [5631, 'Детская одежда'],
+    [5641, 'Магазины женских аксессуаров'],
+    [5651, 'Семейные магазины одежды'],
+    [5661, 'Обувные магазины'],
+  ]},
+  { group: 'Спорт', codes: [
+    [5940, 'Велосипедные магазины'],
+    [5941, 'Спорные товары'],
+    [5945, 'Спорные товары / велосипеды'],
+    [5946, 'Кемпинг / туризм'],
+    [7012, 'Сдача в аренду оборудования (таймшер)'],
+    [7911, 'Танцевальные студии'],
+    [7992, 'Гольф-клубы'],
+    [7993, 'Фитнес-клубы'],
+    [7994, 'Спортивные залы / фитнес'],
+    [7995, 'Боулинг'],
+    [7996, 'Бильярд / пул'],
+    [7997, 'Клубы (-membership)'],
+    [7998, 'Аквапарки / водные развлечения'],
+    [7999, 'Развлекательные / спортивные услуги (прочие)'],
+  ]},
+  { group: 'Кино', codes: [
+    [7829, 'Видеопрокат'],
+    [7832, 'Кинотеатры'],
+    [7841, 'Видеосалоны (прокат)'],
+  ]},
+  { group: 'Книги', codes: [
+    [5942, 'Книжные магазины'],
+    [5995, 'Зоомагазины'],
+    [5999, 'Магазины (прочие)'],
+    [6531, 'Квартирное бюро (риелторы)'],
+    [6532, 'Агенты по продаже недвижимости'],
+    [6533, 'Агенты по аренде недвижимости'],
+    [6538, 'Аукционы недвижимости'],
+    [6540, 'Управление недвижимостью'],
+  ]},
+  { group: 'Связь', codes: [
+    [4812, 'Телекоммуникационное оборудование / услуги'],
+    [4813, 'Услуги связи (пейджеры, сотовые)'],
+    [4814, 'Услуги связи (прочие)'],
+    [4899, 'Кабельное / спутниковое ТВ'],
+  ]},
+  { group: 'Дом', codes: [
+    [5200, 'Строительные материалы / лесопиломатериалы'],
+    [5211, 'Строительные материалы (лес, строймат.)'],
+    [5231, 'Стеклянные / зеркальные / витринные магазины'],
+    [5251, 'Железные / сантехнические товары'],
+    [5261, 'Номерные / скобяные магазины'],
+    [5271, 'Мобильные дома / автодома'],
+    [5712, 'Магазины электротоваров / радио'],
+    [5713, 'Магазины бытовой электроники'],
+    [5714, 'Магазины компьютеров / ПО'],
+    [5718, 'Магазины бытовой техники'],
+    [5719, 'Магазины электротоваров (прочие)'],
+    [5722, 'Магазины бытовых товаров'],
+    [5732, 'Электронное оборудование'],
+    [5733, 'Магазины музыкальных инструментов'],
+    [5734, 'Магазины компьютерного ПО'],
+    [5735, 'Магазины аудио / видео'],
+  ]},
+  { group: 'Ювелирка', codes: [
+    [5094, 'Драгоценные камни / ювелирные изделия'],
+    [5944, 'Часы / часы-ручки / ювелирные магазины'],
+  ]},
+  { group: 'Цветы', codes: [
+    [5992, 'Цветочные магазины'],
+    [5993, 'Сигарные магазины'],
+  ]},
+  { group: 'Финансы', codes: [
+    [6010, 'Банки / финансовые институты (снятие наличных)'],
+    [6011, 'Банки / финансовые институты (покупки)'],
+    [6051, 'Некоммерческие финансовые институты'],
+    [6211, 'Ценные бумаги / брокеры'],
+    [6300, 'Страховые продажи / андеррайтинг'],
+    [6511, 'Недвижимость (покупка/продажа)'],
+    [6529, 'Удалённая аренда'],
+    [6530, 'Услуги по недвижимости'],
+    [6531, 'Квартирное бюро (риелторы)'],
+    [6533, 'Агенты по аренде недвижимости'],
+    [6538, 'Аукционы недвижимости'],
+    [6540, 'Управление недвижимостью'],
+  ]},
+  { group: 'Автомобили', codes: [
+    [5511, 'Автодилеры / магазины новых авто'],
+    [5532, 'Автомагазины (шины)'],
+    [5533, 'Автомобильные запчасти / аксессуары'],
+    [7512, 'Аренда автомобилей'],
+    [7513, 'Аренда грузовиков'],
+    [7519, 'Моторные дома / трейлеры (аренда)'],
+    [7523, 'Стоянки / гаражи'],
+    [7531, 'Автосервисы / СТО'],
+    [7534, 'Шиномонтаж / ремонт шин'],
+    [7535, 'Автомойки'],
+    [7538, 'Автосервисы (прочие)'],
+    [7542, 'Мойка самообслуживания'],
+    [7549, 'Автосервисы (прочие 2)'],
+  ]},
+  { group: 'Красота/Фитнес', codes: [
+    [7230, 'Парикмахерские / салоны красоты'],
+    [7296, 'Магазины одежды (прочие)'],
+    [7297, 'Магазины массажных салонов'],
+    [7298, 'Салоны красоты / парикмахерские'],
+    [7299, 'Салоны красоты / фитнес (прочие)'],
+  ]},
+  { group: 'Доставка', codes: [
+    [4215, 'Курьерские услуги'],
+    [4225, 'Склады / хранение'],
+    [5960, 'Прямой маркетинг — маркетингInsurance'],
+    [5961, 'Прямой маркетинг — каталог'],
+    [5962, 'Прямой маркетинг — прод. потребительские'],
+    [5963, 'Прямой маркетинг — туризм'],
+    [5964, 'Прямой маркетинг — подписки'],
+    [5965, 'Прямой маркетинг — оптовая торговля'],
+    [5966, 'Прямой маркетинг — Insurance'],
+    [5967, 'Прямой маркетинг — розничная торговля'],
+    [5968, 'Прямой маркетинг — услуги'],
+    [5969, 'Прямой маркетинг (прочие)'],
+    [7311, 'Службы доставки (прочие)'],
+    [7399, 'Службы бизнес-услуг (прочие)'],
+  ]},
+  { group: 'Прочее', codes: [
+    [4011, 'Железные дороги (региональные)'],
+    [4121, 'Такси / лимузины'],
+    [4214, 'Грузоперевозки (прочие)'],
+    [4511, 'Авиалинии'],
+    [4722, 'Туристические агентства'],
+    [4723, 'Туристические агентства (оптовые)'],
+    [4732, 'Турагентства'],
+    [4900, 'Службы коммунального обслуживания'],
+    [5192, 'Садовые магазины / питомники'],
+    [5193, 'Магазины цветов / теплицы'],
+    [5198, 'Товары для дома (прочие)'],
+    [5200, 'Строительные материалы'],
+    [5211, 'Лесопилки / строительные материалы'],
+    [5231, 'Стеклянные / витринные магазины'],
+    [5271, 'Мобильные дома'],
+    [5533, 'Автозапчасти / аксессуары'],
+    [5733, 'Музыкальные инструменты'],
+    [5814, 'Фастфуд'],
+    [5940, 'Велосипеды'],
+    [5970, 'Художественные товары'],
+    [5994, 'Газетные киоски'],
+    [5999, 'Розничные магазины (прочие)'],
+    [7011, 'Аренда недвижимости (долгосрочная)'],
+    [7012, 'Таймшер'],
+    [7210, 'Прачечные / химчистки'],
+    [7211, 'Прачечные (самообслуживание)'],
+    [7216, 'Химчистки / прачечные'],
+    [7221, 'Фотостудии'],
+    [7276, 'Агентства знакомств'],
+    [7277, 'Клубы здоровья / бани'],
+    [7280, 'Информационные услуги'],
+    [7298, 'Салоны красоты'],
+    [7332, 'Полотёрные услуги (ковры, обои)'],
+    [7338, 'Услуги по вывозу мусора'],
+    [7339, 'Услуги по уборке / обслуживанию'],
+    [7342, 'Экзаменаторы (огнестрельное оружие)'],
+    [7349, 'Услуги по уборке (прочие)'],
+    [7361, 'Услуги по работе / найму'],
+    [7372, 'Услуги программирования'],
+    [7375, 'Услуги по аренде (прочие)'],
+    [7379, 'Услуги по ремонту ПК'],
+    [7392, 'Аналитические услуги'],
+    [7393, 'Детективные / охранные услуги'],
+    [7394, 'Услуги аренды оборудования'],
+    [7395, 'Услуги фото / копировальные'],
+    [7399, 'Бизнес-услуги (прочие)'],
+    [7512, 'Аренда автомобилей'],
+    [7513, 'Аренда грузовиков'],
+    [7519, 'Аренда трейлеров'],
+    [7523, 'Парковки / гаражи'],
+    [7531, 'Автосервисы'],
+    [7534, 'Шиномонтаж'],
+    [7535, 'Автомойки'],
+    [7538, 'СТО (прочие)'],
+    [7542, 'Автомойки самообслуживания'],
+    [7549, 'Автосервисы (прочие)'],
+    [7622, 'Ремонт бытовой техники'],
+    [7623, 'Ремонт кондиционеров'],
+    [7629, 'Ремонт электрооборудования'],
+    [7631, 'Часовые мастерские'],
+    [7641, 'Мебельные мастерские'],
+    [7692, 'Сварочные мастерские'],
+    [7699, 'Ремонт (прочее)'],
+    [7911, 'Танцевальные студии'],
+    [7922, 'Театры / симфонические оркестры'],
+    [7929, 'Развлекательные услуги (прочие)'],
+    [7932, 'Бильярдные / бильярдные залы'],
+    [7933, 'Боулинг'],
+    [7941, 'Спортивные клубы / поля для гольфа'],
+    [7991, 'Туристические / горнолыжные курорты'],
+    [7992, 'Гольф-клубы'],
+    [7993, 'Фитнес-клубы'],
+    [7994, 'Спортзалы'],
+    [7995, 'Бильярд / боулинг'],
+    [7996, 'Клубы (membership)'],
+    [7997, 'Клубы (membership 2)'],
+    [7998, 'Аквапарки'],
+    [7999, 'Развлечения (прочие)'],
+    [8011, 'Врачи'],
+    [8021, 'Стоматологи'],
+    [8031, 'Остеопаты'],
+    [8042, 'Оптики'],
+    [8043, 'Оптометристы'],
+    [8049, 'Медицинские услуги (прочие)'],
+    [8062, 'Больницы'],
+    [8071, 'Лаборатории'],
+    [8099, 'Медицинские услуги (прочие 2)'],
+    [8211, 'Начальные / средние школы'],
+    [8220, 'Колледжи / университеты'],
+    [8241, 'Коррекционные школы'],
+    [8244, 'Школы бизнеса / секретарские'],
+    [8249, 'Образование (прочее)'],
+    [8299, 'Образовательные услуги (прочие)'],
+    [8351, 'Дошкольные учреждения / ясли'],
+    [8398, 'Благотворительные и социальные организации'],
+    [8675, 'Автомобильные ассоциации'],
+    [8699, 'Профессиональные организации'],
+    [8999, 'Государственные услуги (прочие)'],
+    [9211, 'Судебные издержки / алименты'],
+    [9222, 'Штрафы'],
+    [9223, 'Налоги / сборы'],
+    [9311, 'Налоги'],
+    [9400, 'Внутренние правительственные доходы'],
+    [9402, 'Платежи (прочие)'],
+    [9950, 'Внутренние правительственные закупки'],
+  ]},
+];
+
+let mccSearchQuery = '';
+let mccExpandedGroups = new Set();
+
+function renderMCC(app) {
+  let html = '<div style="display:flex;flex-direction:column;gap:12px">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">';
+  html += '<span style="font-size:15px;color:var(--text-sec)">Справочник MCC</span>';
+  html += '<span style="font-size:11px;color:var(--text-muted)">' + countMCCTotal() + ' кодов</span>';
+  html += '</div>';
+  html += '<div class="dop-new-row" style="margin-bottom:0;padding-bottom:12px;border-bottom:none">';
+  html += '<input type="text" class="dop-input" placeholder="Поиск по коду или описанию..." style="flex:1;min-width:0" value="' + escHtml(mccSearchQuery) + '" oninput="mccSearch(this.value)" onfocus="this.select()">';
+  html += '</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:8px">';
+  const query = mccSearchQuery.toLowerCase().trim();
+  const isSearching = query.length > 0;
+  for (const group of MCC_DATA) {
+    const filtered = query
+      ? group.codes.filter(c => String(c[0]).includes(query) || c[1].toLowerCase().includes(query))
+      : group.codes;
+    if (isSearching && filtered.length === 0) continue;
+    const isExpanded = isSearching || mccExpandedGroups.has(group.group);
+    html += '<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">';
+    html += '<div onclick="toggleMCCGroup(\'' + escHtml(group.group).replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:var(--bg-card);border-bottom:' + (isExpanded ? '1px solid var(--border)' : 'none') + ';transition:background 0.15s">';
+    html += '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:600;color:var(--text)">' + escHtml(group.group) + '</span>';
+    html += '<span style="font-size:11px;color:var(--text-muted);background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px">' + filtered.length + '</span></div>';
+    html += '<span style="width:18px;height:18px;color:var(--text-muted);transition:transform 0.15s;transform:rotate(' + (isExpanded ? '180' : '0') + 'deg)">' + ICONS.chevDown + '</span>';
+    html += '</div>';
+    if (isExpanded) {
+      html += '<div style="display:flex;flex-direction:column;gap:1px">';
+      for (const [code, desc] of filtered) {
+        const highlighted = query ? desc.replace(new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'), '<mark style="background:rgba(34,197,94,0.25);color:var(--text);border-radius:2px;padding:0 1px">$1</mark>') : escHtml(desc);
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg-card)">';
+        html += '<span style="font-family:SF Mono,Monaco,monospace;font-size:13px;font-weight:600;color:var(--green);background:rgba(34,197,94,0.08);padding:2px 6px;border-radius:4px;min-width:40px;text-align:center">' + code + '</span>';
+        html += '<span style="font-size:13px;color:var(--text-sec)">' + highlighted + '</span>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  if (isSearching && html.indexOf('mcc-row') === -1 && html.indexOf('monospace') === -1) {
+    html = '<div class="empty" style="padding:40px 20px"><div style="width:48px;height:48px">' + ICONS.book + '</div><p>Ничего не найдено</p></div>';
+  }
+  html += '</div></div>';
+  app.innerHTML = html;
+}
+
+function countMCCTotal() {
+  let total = 0;
+  for (const g of MCC_DATA) total += g.codes.length;
+  return total;
+}
+
+function mccSearch(query) {
+  mccSearchQuery = query;
+  render();
+}
+
+function toggleMCCGroup(groupName) {
+  if (mccExpandedGroups.has(groupName)) mccExpandedGroups.delete(groupName);
+  else mccExpandedGroups.add(groupName);
+  render();
+}
+
+// ─── Apply Recommendations & Copy Prev Month ──────────────────────────────────
+function applyRecommendations(bankId) {
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) return;
+  const rec = getRecommendation()[bank.id];
+  if (!rec) { showToast('Нет рекомендаций'); return; }
+  bank.selectedCategories = Array.from(rec);
+  bank.updatedAt = new Date().toISOString();
+  invalidateRecommendation();
+  saveData(); render(); updateBadge();
+  showToast('Рекомендации применены');
+}
+
+function copyPrevMonth(bankId) {
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) return;
+  // Calculate previous month
+  const [y, m] = bank.month.split('-').map(Number);
+  const prevM = m === 1 ? 12 : m - 1;
+  const prevY = m === 1 ? y - 1 : y;
+  const prevMonth = prevY + '-' + String(prevM).padStart(2, '0');
+  const histKey = 'cashback-history-' + bank.coinData.provider.name + '-' + prevMonth;
+  try {
+    const raw = localStorage.getItem(histKey);
+    if (!raw) { showToast('Нет данных за прошлый месяц'); return; }
+    const hist = JSON.parse(raw);
+    if (hist.s) bank.selectedCategories = hist.s;
+    if (hist.e) bank.customExtras = hist.e;
+    if (hist.c) bank.customCategories = hist.c;
+    if (hist.mx !== undefined) bank.maxSelectable = hist.mx;
+    if (hist.ex) bank.excludeFromLimit = hist.ex;
+    bank.updatedAt = new Date().toISOString();
+    invalidateRecommendation();
+    saveData(); render(); updateBadge();
+    showToast('Выбор скопирован: ' + formatMonth(prevMonth));
+  } catch(e) { showToast('Ошибка загрузки данных'); }
+}
+
+// ─── Badge API ──────────────────────────────────────────────────────────────────
+function updateBadge() {
+  if (!navigator.setAppBadge) return;
+  const total = banks.reduce((sum, b) => sum + b.selectedCategories.length, 0);
+  if (total > 0) navigator.setAppBadge(total).catch(() => {});
+  else clearBadge();
+}
+function clearBadge() {
+  if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
+}
 
 // ─── Init ───────────────────────────────────────────────────────────────────────
 (function init() {
@@ -1519,7 +2219,15 @@ document.querySelectorAll('.overlay').forEach(overlay => {
     tryRecoverSelections();
     saveData();
   }
+  // Smart default tab: if no selections, go to Banks
+  const totalSelected = banks.reduce((sum, b) => sum + b.selectedCategories.length, 0);
+  if (totalSelected === 0 && banks.length > 0) {
+    currentTab = 'banks';
+    document.getElementById('tabSelected').classList.remove('active');
+    document.getElementById('tabBanks').classList.add('active');
+  }
   render();
+  updateBadge();
 })();
 </script>
 </body>
