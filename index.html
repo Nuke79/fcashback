@@ -1664,15 +1664,19 @@ function addBank(coinData, keepSelections, oldBank) {
     });
   }
   banks.push(bank); saveData(); render();
+  return bank;
 }
 
 function handleDuplicate(action) {
   if (!pendingCoinData || action === 'cancel') { pendingCoinData = null; document.getElementById('duplicateModal').classList.add('hidden'); return; }
   const existing = banks.find(b => b.coinData.provider.name === pendingCoinData.provider.name);
-  if (action === 'replace') { banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name); addBank(pendingCoinData, false, null); }
-  else if (action === 'keep' && existing) { banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name); addBank(pendingCoinData, true, existing); }
+  let newBank = null;
+  if (action === 'replace') { banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name); newBank = addBank(pendingCoinData, false, null); }
+  else if (action === 'keep' && existing) { banks = banks.filter(b => b.coinData.provider.name !== pendingCoinData.provider.name); newBank = addBank(pendingCoinData, true, existing); }
+  if (newBank) expandedBankId = newBank.id;
   pendingCoinData = null;
   document.getElementById('duplicateModal').classList.add('hidden');
+  render();
 }
 
 function handleFileUpload(event) {
