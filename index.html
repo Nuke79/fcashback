@@ -412,6 +412,19 @@
     .textarea::placeholder { color: var(--text-muted); }
     .error-text { font-size: 13px; color: var(--red); margin-top: 8px; }
 
+    .import-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec); margin-bottom: 6px; }
+    .import-input {
+      width: 100%; padding: 10px 12px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-size: 15px; font-family: var(--font); outline: none;
+      transition: border-color 0.15s;
+    }
+    .import-input:focus { border-color: var(--green); }
+    .import-input.import-input-warn { border-color: #f59e0b; }
+    .import-input.import-input-warn:focus { border-color: #d97706; }
+    .import-input::placeholder { color: var(--text-muted); }
+
     .action-card {
       display: flex; align-items: flex-start; gap: 12px;
       padding: 14px; border-radius: var(--radius-sm);
@@ -588,37 +601,59 @@
     <div class="modal">
       <div class="modal-header">
         <div class="modal-title">Импорт COIN файла</div>
-        <div class="modal-desc">Загрузите файл COIN 2.0 или вставьте JSON текст</div>
+        <div class="modal-desc" id="importDesc">Загрузите файл COIN 2.0 или вставьте JSON текст</div>
       </div>
       <div class="modal-body">
-        <div class="tabs">
-          <button class="tab active" id="tabFile" onclick="switchImportTab('file')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Файл
-          </button>
-          <button class="tab" id="tabPaste" onclick="switchImportTab('paste')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
-            Текст
-          </button>
-        </div>
-        <div id="importFileZone">
-          <div class="upload-zone" onclick="document.getElementById('coinFileInput').click()">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <p>Нажмите для выбора JSON файла</p>
+        <!-- Step 1: Input -->
+        <div id="importStep1">
+          <div class="tabs">
+            <button class="tab active" id="tabFile" onclick="switchImportTab('file')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Файл
+            </button>
+            <button class="tab" id="tabPaste" onclick="switchImportTab('paste')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+              Текст
+            </button>
           </div>
-          <input type="file" id="coinFileInput" accept=".json" style="display:none" onchange="handleFileUpload(event)">
+          <div id="importFileZone">
+            <div class="upload-zone" onclick="document.getElementById('coinFileInput').click()">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p>Нажмите для выбора JSON файла</p>
+            </div>
+            <input type="file" id="coinFileInput" accept=".json" style="display:none" onchange="handleFileUpload(event)">
+          </div>
+          <div id="importPasteZone" style="display:none">
+            <textarea class="textarea" id="pasteText" placeholder="Вставьте JSON текст COIN файла..."></textarea>
+            <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="handlePasteImport()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Импортировать
+            </button>
+          </div>
+          <div class="error-text hidden" id="importError"></div>
         </div>
-        <div id="importPasteZone" style="display:none">
-          <textarea class="textarea" id="pasteText" placeholder="Вставьте JSON текст COIN файла..."></textarea>
-          <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="handlePasteImport()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Импортировать
-          </button>
+        <!-- Step 2: Preview / Confirm -->
+        <div id="importStep2" style="display:none">
+          <div style="margin-bottom:14px">
+            <label class="import-label">Банк</label>
+            <input type="text" class="import-input" id="importBankName" list="bankNameList" placeholder="Введите название банка" autocomplete="off">
+            <datalist id="bankNameList"></datalist>
+            <div class="error-text hidden" id="importBankNameError">Укажите название банка</div>
+          </div>
+          <div id="importPreview" style="font-size:13px;color:var(--text-sec)"></div>
         </div>
-        <div class="error-text hidden" id="importError"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline" onclick="closeImportModal()">Отмена</button>
+        <button class="btn btn-outline" id="importBackBtn" style="display:none" onclick="importBack()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Назад
+        </button>
+        <div style="flex:1"></div>
+        <button class="btn btn-outline" id="importCancelBtn" onclick="closeImportModal()">Отмена</button>
+        <button class="btn btn-primary" id="importConfirmBtn" style="display:none" onclick="confirmImport()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Добавить банк
+        </button>
       </div>
     </div>
   </div>
@@ -709,22 +744,23 @@
 
         <div class="screenshot-prompt-box">
           <div class="screenshot-prompt-label">Промпт для AI (скопируйте и вставьте в чат)</div>
-          <textarea class="screenshot-prompt-text" id="screenshotPrompt" readonly>Из скриншота извлеки категории кэшбэка в формате JSON.
-Правила:
+          <textarea class="screenshot-prompt-text" id="screenshotPrompt" readonly>Из скриншота извлеки категории кэшбэка в формате JSON COIN 0.9.0.
+Структура:
 - coinVersion: "0.9.0"
 - created: текущая дата ISO 8601
-- provider.name: название банка (по логотипу или интерфейсу)
-- provider.website: пустая строка
-- provider.notes: пустая строка
-- cashback.entries: массив категорий, каждая с полями:
-  - percent: процент кэшбэка (число)
-  - limit: месячный лимит возврата в рублях (число, если указан, иначе null)
-  - category: название категории
-  - mccs: пустой массив []
-  - notes: массив индексов (если есть условия)
-  - links: пустой массив []
-- notes: массив примечаний с полями { id (число, от 0), note (текст условия) }
-- links: пустой массив []
+- provider: { name, website, notes }
+  - name: название банка (по логотипу/интерфейсу). Если не удалось определить — ""
+  - website: "https://..." или "" если неизвестен
+  - notes: краткое описание карты, если есть на скриншоте, иначе ""
+- cashback.entries: массив объектов:
+  - category: название категории (строка, обязательно)
+  - percent: процент кэшбэка (число > 0, обязательно)
+  - limit: месячный лимит в рублях (целое число > 0). Если не указан — НЕ ВКЛЮЧАЙ поле
+  - mccs: ["5812", ...] — коды MCC если известны, иначе НЕ ВКЛЮЧАЙ поле
+  - notes: [0, 1, ...] — индексы из массива notes (только если есть условия)
+  - links: [0, ...] — индексы из массива links (только если есть ссылки)
+- notes: [{ id: 0, note: "текст условия" }, ...] — если есть условия, иначе []
+- links: [{ id: 0, link: "https://..." }, ...] — если есть ссылки, иначе []
 
 Верни ТОЛЬКО JSON, без пояснений.</textarea>
           <button class="screenshot-copy-btn" onclick="copyScreenshotPrompt()">
@@ -864,10 +900,10 @@ if ('serviceWorker' in navigator) {
 
 // ─── Embedded COIN Data ─────────────────────────────────────────────────────────
 const EMBEDDED_COINS = [
-  {"coinVersion":"2.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"Сбербанк","website":"https://www.sberbank.ru","notes":"Дебетовая карта с выбором 5 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки."},"cashback":{"entries":[{"category":"Транспорт","percent":10,"notes":[1]},{"category":"СпасибоТревел","percent":5,"limit":3000,"notes":[2]},{"category":"Кино и театр","percent":5,"notes":[1]},{"category":"Одежда и обувь","percent":3,"notes":[1]},{"category":"Товары для дома","percent":3,"notes":[1]},{"category":"Салоны красоты","percent":3,"notes":[1]},{"category":"Медицинские услуги","percent":2,"notes":[1]},{"category":"На все покупки","percent":1,"notes":[3]}]},"notes":[{"id":1,"note":"Категория на выбор (можно выбрать 5 из списка на месяц)."},{"id":2,"note":"Кэшбэк начисляется в бонусах Спасибо, лимит до 3 000 бонусов."},{"id":3,"note":"Всегда действующий кэшбэк при оплате дебетовой картой."}],"links":[{"id":1,"link":"https://www.sberbank.ru/promo/cashback"}]},
-  {"coinVersion":"2.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"ПСБ (Промсвязьбанк)","website":"https://www.psbank.ru","notes":"Дебетовая карта с выбором 3 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки."},"cashback":{"entries":[{"category":"Кафе, рестораны, фастфуд","percent":5,"notes":[1]},{"category":"Такси, каршеринг","percent":5,"notes":[1]},{"category":"Платные дороги","percent":5,"notes":[1]},{"category":"Салоны красоты","percent":5,"notes":[2]},{"category":"Товары для детей","percent":5,"notes":[2]},{"category":"Кино, театры, матчи","percent":5,"notes":[2]},{"category":"Товары для животных","percent":5,"notes":[2]},{"category":"Цветы и подарки","percent":5,"notes":[2]},{"category":"Книги и канцтовары","percent":5,"notes":[2]},{"category":"Общественный транспорт","percent":5,"notes":[2]},{"category":"Магазины Duty Free","percent":5,"notes":[2]},{"category":"Ж/д билеты","percent":5,"notes":[2]},{"category":"Спорттовары","percent":3,"notes":[2]},{"category":"Аптеки, медицина","percent":3,"notes":[2]},{"category":"Косметика и парфюмерия","percent":3,"notes":[2]},{"category":"АЗС","percent":2,"notes":[2]},{"category":"На все покупки","percent":1,"notes":[3]}]},"notes":[{"id":1,"note":"Выбранная категория (выбрано 3 из 3 доступных на месяц)."},{"id":2,"note":"Категория доступна для выбора (можно выбрать 3 из списка на месяц)."},{"id":3,"note":"Всегда действующий кэшбэк на все покупки."}],"links":[{"id":1,"link":"https://www.psbank.ru/Personal/Keshbek"}]},
-  {"coinVersion":"2.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"ВТБ","website":"https://www.vtb.ru","notes":"Дебетовая карта BTB. Выбираемые категории суммируются с всегда действующими. Без подписки BTB Плюс."},"cashback":{"entries":[{"category":"Транспорт","percent":10,"notes":[1]},{"category":"АЗС","percent":5,"notes":[2,3]},{"category":"Здоровье","percent":5,"limit":1000,"notes":[2]},{"category":"Дом и ремонт","percent":5,"limit":1000,"notes":[2]},{"category":"Супермаркеты","percent":1.5,"notes":[2]},{"category":"МЕДСИ","percent":15,"limit":1500,"notes":[4]},{"category":"Tasty Coffee","percent":10,"limit":500,"notes":[5]},{"category":"BTB Pay на все покупки","percent":1,"notes":[6]}]},"notes":[{"id":1,"note":"Временный бонус за хранение остатков. Действует 27.03–25.04."},{"id":2,"note":"Категория на выбор (можно выбрать 4 из списка на месяц). Действующие категории суммируются с выбираемыми."},{"id":3,"note":"Суммируется с временным бонусом 3% за хранение остатков (27.03–25.04), итоговый кэшбэк на АЗС — 8%."},{"id":4,"note":"Спецпредложение: оплата услуг в клиниках МЕДСИ. Кэшбэк до 1 500 ₽ в месяц."},{"id":5,"note":"Спецпредложение: при оплате на сайте и в приложении Tasty Coffee, кроме сертификатов и пополнения внутреннего счёта. Кэшбэк до 500 ₽ в месяц."},{"id":6,"note":"Всегда действующий кэшбэк при оплате смартфоном Android. Условие: сбережения от 50 000 ₽."}],"links":[{"id":1,"link":"https://www.vtb.ru/personal/karty/debetovye-karty/btb/"}]},
-  {"coinVersion":"2.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"Озон Банк","website":"https://www.ozonbank.ru","notes":"Дебетовая карта с выбором 4 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки. Дополнительные категории доступны с Premium-подпиской."},"cashback":{"entries":[{"category":"Tasty Coffee","percent":50,"notes":[1]},{"category":"Искусство","percent":25,"notes":[1]},{"category":"РИВ ГОШ","percent":10,"notes":[1]},{"category":"Аптеки","percent":7,"notes":[1]},{"category":"Яндекс Лавка","percent":7,"notes":[1]},{"category":"Супермаркеты","percent":3,"notes":[1]},{"category":"Такси","percent":5,"notes":[1]},{"category":"Топливо и АЗС","percent":5,"notes":[1]},{"category":"Транспорт","percent":5,"notes":[1]},{"category":"Фастфуд","percent":5,"notes":[1]},{"category":"На все покупки","percent":1,"notes":[2]}]},"notes":[{"id":1,"note":"Категория доступна для выбора (можно выбрать 4 из списка на месяц)."},{"id":2,"note":"Всегда действующий кэшбэк на все покупки. Для добавления 5-й категории требуется Premium-подписка."}],"links":[{"id":1,"link":"https://www.ozonbank.ru/"}]}
+  {"coinVersion":"0.9.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"Сбербанк","website":"https://www.sberbank.ru","notes":"Дебетовая карта с выбором 5 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки."},"cashback":{"entries":[{"category":"Транспорт","percent":10,"notes":[1]},{"category":"СпасибоТревел","percent":5,"limit":3000,"notes":[2]},{"category":"Кино и театр","percent":5,"notes":[1]},{"category":"Одежда и обувь","percent":3,"notes":[1]},{"category":"Товары для дома","percent":3,"notes":[1]},{"category":"Салоны красоты","percent":3,"notes":[1]},{"category":"Медицинские услуги","percent":2,"notes":[1]},{"category":"На все покупки","percent":1,"notes":[3]}]},"notes":[{"id":1,"note":"Категория на выбор (можно выбрать 5 из списка на месяц)."},{"id":2,"note":"Кэшбэк начисляется в бонусах Спасибо, лимит до 3 000 бонусов."},{"id":3,"note":"Всегда действующий кэшбэк при оплате дебетовой картой."}],"links":[{"id":1,"link":"https://www.sberbank.ru/promo/cashback"}]},
+  {"coinVersion":"0.9.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"ПСБ (Промсвязьбанк)","website":"https://www.psbank.ru","notes":"Дебетовая карта с выбором 3 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки."},"cashback":{"entries":[{"category":"Кафе, рестораны, фастфуд","percent":5,"notes":[1]},{"category":"Такси, каршеринг","percent":5,"notes":[1]},{"category":"Платные дороги","percent":5,"notes":[1]},{"category":"Салоны красоты","percent":5,"notes":[2]},{"category":"Товары для детей","percent":5,"notes":[2]},{"category":"Кино, театры, матчи","percent":5,"notes":[2]},{"category":"Товары для животных","percent":5,"notes":[2]},{"category":"Цветы и подарки","percent":5,"notes":[2]},{"category":"Книги и канцтовары","percent":5,"notes":[2]},{"category":"Общественный транспорт","percent":5,"notes":[2]},{"category":"Магазины Duty Free","percent":5,"notes":[2]},{"category":"Ж/д билеты","percent":5,"notes":[2]},{"category":"Спорттовары","percent":3,"notes":[2]},{"category":"Аптеки, медицина","percent":3,"notes":[2]},{"category":"Косметика и парфюмерия","percent":3,"notes":[2]},{"category":"АЗС","percent":2,"notes":[2]},{"category":"На все покупки","percent":1,"notes":[3]}]},"notes":[{"id":1,"note":"Выбранная категория (выбрано 3 из 3 доступных на месяц)."},{"id":2,"note":"Категория доступна для выбора (можно выбрать 3 из списка на месяц)."},{"id":3,"note":"Всегда действующий кэшбэк на все покупки."}],"links":[{"id":1,"link":"https://www.psbank.ru/Personal/Keshbek"}]},
+  {"coinVersion":"0.9.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"ВТБ","website":"https://www.vtb.ru","notes":"Дебетовая карта BTB. Выбираемые категории суммируются с всегда действующими. Без подписки BTB Плюс."},"cashback":{"entries":[{"category":"Транспорт","percent":10,"notes":[1]},{"category":"АЗС","percent":5,"notes":[2,3]},{"category":"Здоровье","percent":5,"limit":1000,"notes":[2]},{"category":"Дом и ремонт","percent":5,"limit":1000,"notes":[2]},{"category":"Супермаркеты","percent":1.5,"notes":[2]},{"category":"МЕДСИ","percent":15,"limit":1500,"notes":[4]},{"category":"Tasty Coffee","percent":10,"limit":500,"notes":[5]},{"category":"BTB Pay на все покупки","percent":1,"notes":[6]}]},"notes":[{"id":1,"note":"Временный бонус за хранение остатков. Действует 27.03–25.04."},{"id":2,"note":"Категория на выбор (можно выбрать 4 из списка на месяц). Действующие категории суммируются с выбираемыми."},{"id":3,"note":"Суммируется с временным бонусом 3% за хранение остатков (27.03–25.04), итоговый кэшбэк на АЗС — 8%."},{"id":4,"note":"Спецпредложение: оплата услуг в клиниках МЕДСИ. Кэшбэк до 1 500 ₽ в месяц."},{"id":5,"note":"Спецпредложение: при оплате на сайте и в приложении Tasty Coffee, кроме сертификатов и пополнения внутреннего счёта. Кэшбэк до 500 ₽ в месяц."},{"id":6,"note":"Всегда действующий кэшбэк при оплате смартфоном Android. Условие: сбережения от 50 000 ₽."}],"links":[{"id":1,"link":"https://www.vtb.ru/personal/karty/debetovye-karty/btb/"}]},
+  {"coinVersion":"0.9.0","created":"2026-04-01T12:00:00+03:00","provider":{"name":"Озон Банк","website":"https://www.ozonbank.ru","notes":"Дебетовая карта с выбором 4 категорий кэшбэка на месяц. Всегда действующий кэшбэк 1% на все покупки. Дополнительные категории доступны с Premium-подпиской."},"cashback":{"entries":[{"category":"Tasty Coffee","percent":50,"notes":[1]},{"category":"Искусство","percent":25,"notes":[1]},{"category":"РИВ ГОШ","percent":10,"notes":[1]},{"category":"Аптеки","percent":7,"notes":[1]},{"category":"Яндекс Лавка","percent":7,"notes":[1]},{"category":"Супермаркеты","percent":3,"notes":[1]},{"category":"Такси","percent":5,"notes":[1]},{"category":"Топливо и АЗС","percent":5,"notes":[1]},{"category":"Транспорт","percent":5,"notes":[1]},{"category":"Фастфуд","percent":5,"notes":[1]},{"category":"На все покупки","percent":1,"notes":[2]}]},"notes":[{"id":1,"note":"Категория доступна для выбора (можно выбрать 4 из списка на месяц)."},{"id":2,"note":"Всегда действующий кэшбэк на все покупки. Для добавления 5-й категории требуется Premium-подписка."}],"links":[{"id":1,"link":"https://www.ozonbank.ru/"}]}
 ];
 
 // ─── Corporate Colors ───────────────────────────────────────────────────────────
@@ -924,6 +960,7 @@ let banks = [];
 let expandedBankId = null;
 let currentTab = 'selected';
 let pendingCoinData = null;
+let pendingImportCoinData = null; // parsed COIN data waiting for bank name confirmation
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 function genId() { return Date.now().toString(36) + Math.random().toString(36).substring(2); }
@@ -1642,10 +1679,72 @@ function toggleNotes(btn) {
 function openImportModal() {
   document.getElementById('importModal').classList.remove('hidden');
   document.getElementById('importError').classList.add('hidden');
+  document.getElementById('importBankNameError').classList.add('hidden');
   document.getElementById('pasteText').value = '';
+  pendingImportCoinData = null;
   switchImportTab('file');
+  showImportStep1();
 }
-function closeImportModal() { document.getElementById('importModal').classList.add('hidden'); }
+function closeImportModal() {
+  document.getElementById('importModal').classList.add('hidden');
+  pendingImportCoinData = null;
+}
+function showImportStep1() {
+  document.getElementById('importStep1').style.display = '';
+  document.getElementById('importStep2').style.display = 'none';
+  document.getElementById('importBackBtn').style.display = 'none';
+  document.getElementById('importConfirmBtn').style.display = 'none';
+  document.getElementById('importDesc').textContent = 'Загрузите файл COIN 2.0 или вставьте JSON текст';
+}
+function showImportStep2(coinData) {
+  document.getElementById('importStep1').style.display = 'none';
+  document.getElementById('importStep2').style.display = '';
+  document.getElementById('importBackBtn').style.display = '';
+  document.getElementById('importConfirmBtn').style.display = '';
+  document.getElementById('importBankNameError').classList.add('hidden');
+  document.getElementById('importDesc').textContent = 'Проверьте и подтвердите';
+
+  // Fill bank name datalist with existing banks + embedded
+  const dl = document.getElementById('bankNameList');
+  dl.innerHTML = '';
+  const allNames = new Set();
+  for (const b of banks) allNames.add(b.coinData.provider.name);
+  for (const e of EMBEDDED_COINS) allNames.add(e.provider.name);
+  for (const name of allNames) {
+    const opt = document.createElement('option');
+    opt.value = name; dl.appendChild(opt);
+  }
+
+  // Set bank name input
+  const nameInput = document.getElementById('importBankName');
+  const detectedName = coinData.provider.name || '';
+  nameInput.value = detectedName;
+  nameInput.classList.toggle('import-input-warn', !detectedName);
+
+  // Show preview: category count
+  const entries = coinData.cashback.entries || [];
+  const preview = document.getElementById('importPreview');
+  let pHtml = '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-input);border-radius:var(--radius-sm);border:1px solid var(--border)">';
+  pHtml += '<div style="font-weight:500;color:var(--text);margin-bottom:4px">' + entries.length + ' ' + pluralCategory(entries.length) + '</div>';
+  if (coinData.provider.website) pHtml += '<div style="font-size:12px;opacity:0.7;margin-top:2px">' + escHtml(coinData.provider.website) + '</div>';
+  if (coinData.provider.notes) pHtml += '<div style="font-size:12px;opacity:0.7;margin-top:2px">' + escHtml(coinData.provider.notes) + '</div>';
+  if (entries.length > 0) {
+    const top3 = entries.slice().sort((a,b) => b.percent - a.percent).slice(0, 3);
+    pHtml += '<div style="margin-top:8px;font-size:12px;color:var(--text-sec)">Топ: ' + top3.map(e => escHtml(e.category) + ' ' + e.percent + '%').join(', ') + '</div>';
+  }
+  pHtml += '</div>';
+  preview.innerHTML = pHtml;
+
+  // Focus if name empty
+  if (!detectedName) nameInput.focus();
+}
+function pluralCategory(n) {
+  const m = n % 10; const h = n % 100;
+  if (h >= 11 && h <= 19) return 'категорий';
+  if (m === 1) return 'категория';
+  if (m >= 2 && m <= 4) return 'категории';
+  return 'категорий';
+}
 function switchImportTab(mode) {
   document.getElementById('tabFile').classList.toggle('active', mode === 'file');
   document.getElementById('tabPaste').classList.toggle('active', mode === 'paste');
@@ -1654,6 +1753,53 @@ function switchImportTab(mode) {
   document.getElementById('importError').classList.add('hidden');
 }
 function showImportError(msg) { const el = document.getElementById('importError'); el.textContent = msg; el.classList.remove('hidden'); }
+
+function handleFileUpload(event) {
+  const file = event.target.files && event.target.files[0]; if (!file) return;
+  document.getElementById('importError').classList.add('hidden');
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const coinData = JSON.parse(e.target.result);
+      previewCoinImport(coinData);
+    } catch(err) { showImportError('Не удалось прочитать файл.'); }
+  };
+  reader.readAsText(file); event.target.value = '';
+}
+
+function handlePasteImport() {
+  const text = document.getElementById('pasteText').value.trim();
+  if (!text) { showImportError('Вставьте JSON текст'); return; }
+  try { previewCoinImport(JSON.parse(text)); } catch(err) { showImportError('Неверный формат JSON'); }
+}
+
+function previewCoinImport(coinData) {
+  const v = validateCoin(coinData);
+  if (!v.valid) { showImportError(v.error); return; }
+  pendingImportCoinData = coinData;
+  showImportStep2(coinData);
+}
+
+function importBack() {
+  pendingImportCoinData = null;
+  showImportStep1();
+}
+
+function confirmImport() {
+  if (!pendingImportCoinData) return;
+  const bankName = document.getElementById('importBankName').value.trim();
+  if (!bankName) {
+    document.getElementById('importBankNameError').classList.remove('hidden');
+    document.getElementById('importBankName').classList.add('import-input-warn');
+    document.getElementById('importBankName').focus();
+    return;
+  }
+  // Override provider name with user input
+  const coinData = JSON.parse(JSON.stringify(pendingImportCoinData));
+  coinData.provider.name = bankName;
+  pendingImportCoinData = null;
+  processImport(coinData);
+}
 
 function processImport(coinData) {
   console.log('[processImport] start, provider:', coinData.provider?.name);
@@ -1711,20 +1857,6 @@ function handleDuplicate(action) {
     console.log('[handleDuplicate] newBank id:', newBank.id, 'expandedBankId:', expandedBankId, 'tab:', currentTab);
   }
   render();
-}
-
-function handleFileUpload(event) {
-  const file = event.target.files && event.target.files[0]; if (!file) return;
-  document.getElementById('importError').classList.add('hidden');
-  const reader = new FileReader();
-  reader.onload = function(e) { try { processImport(JSON.parse(e.target.result)); } catch(err) { showImportError('Не удалось прочитать файл.'); } };
-  reader.readAsText(file); event.target.value = '';
-}
-
-function handlePasteImport() {
-  const text = document.getElementById('pasteText').value.trim();
-  if (!text) { showImportError('Вставьте JSON текст'); return; }
-  try { processImport(JSON.parse(text)); } catch(err) { showImportError('Неверный формат JSON'); }
 }
 
 // ─── Export / Import Backup ─────────────────────────────────────────────────────
