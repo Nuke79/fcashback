@@ -1,7 +1,7 @@
 {
-  "name": "Кэшбэк Ассистент [BETA]",
-  "short_name": "Кэшбэк β",
-  "description": "BETA — тестирование новых функций кэшбэк-ассистента",
+  "name": "Кэшбэк Ассистент",
+  "short_name": "Кэшбэк",
+  "description": "Управление категориями кэшбэка банковских карт",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",
