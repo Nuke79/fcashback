@@ -4,566 +4,62 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
+  <meta name="color-scheme" content="dark light">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Кэшбэк Ассистент</title>
+  <title>Кэшбэк Ассистент [BETA]</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #0f172a; --bg-card: #1e293b; --bg-input: #1e293b; --bg-overlay: rgba(0,0,0,0.6);
-      --text: #f1f5f9; --text-sec: #94a3b8; --text-muted: #64748b;
-      --border: #334155; --border-hi: #475569;
-      --green: #22c55e; --green-dim: #16a34a; --red: #ef4444; --yellow: #eab308; --lime: #84cc16;
-      --radius: 12px; --radius-sm: 8px;
-      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      --header-bg: rgba(15,23,42,0.88); --tab-bg: rgba(15,23,42,0.92);
-      --stroke-color: rgba(255,255,255,0.3); --shadow-color: rgba(0,0,0,0.7);
-    }
-    html.light {
-      --bg: #f1f5f9; --bg-card: #ffffff; --bg-input: #ffffff; --bg-overlay: rgba(0,0,0,0.4);
-      --text: #1e293b; --text-sec: #64748b; --text-muted: #94a3b8;
-      --border: #e2e8f0; --border-hi: #cbd5e1;
-      --header-bg: rgba(241,245,249,0.88); --tab-bg: rgba(241,245,249,0.92);
-      --stroke-color: rgba(0,0,0,0.15); --shadow-color: rgba(255,255,255,0.8);
-    }
-    html { font-family: var(--font); background: var(--bg); color: var(--text); }
-    body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: env(safe-area-inset-bottom, 0); }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-    /* ── Header ── */
-    .header {
-      position: sticky; top: 0; z-index: 40;
-      background: var(--header-bg); backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: 10px 16px;
-    }
-    .header-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .header-title { font-size: 18px; font-weight: 700; }
-    .header-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
-
-    /* ── Bottom Tab Bar ── */
-    .tab-bar {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-      background: var(--tab-bg); backdrop-filter: blur(16px);
-      border-top: 1px solid var(--border);
-      display: flex; padding: 6px 8px;
-      padding-bottom: max(6px, env(safe-area-inset-bottom, 6px));
-    }
-    .tab-btn {
-      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-      padding: 8px 4px 6px; border: none; border-radius: 10px;
-      font-size: 11px; font-weight: 500; cursor: pointer;
-      background: transparent; color: var(--text-muted);
-      transition: all 0.15s; font-family: var(--font);
-    }
-    .tab-btn svg { width: 22px; height: 22px; }
-    .tab-btn.active { color: var(--green); background: rgba(34,197,94,0.08); }
-    .tab-btn:not(.active):hover { color: var(--text-sec); }
-
-    /* ── Main ── */
-    .main { max-width: 900px; margin: 0 auto; padding: 16px 12px 90px; }
-
-    /* ── Buttons ── */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 8px 14px; border-radius: var(--radius-sm); border: none;
-      font-size: 14px; font-weight: 500; cursor: pointer;
-      transition: all 0.15s ease; white-space: nowrap;
-      background: transparent; color: var(--text-sec);
-      font-family: var(--font); min-height: 40px;
-    }
-    .btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-    .btn-primary { background: var(--green); color: #fff; font-weight: 600; }
-    .btn-primary:hover { background: var(--green-dim); }
-    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .btn-outline:hover { border-color: var(--border-hi); background: rgba(255,255,255,0.05); }
-    .btn-danger { color: var(--red); }
-    .btn-danger:hover { background: rgba(239,68,68,0.1); }
-    .btn-icon { padding: 8px; width: 40px; height: 40px; }
-    .btn svg { width: 18px; height: 18px; flex-shrink: 0; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    @keyframes install-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); } 50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); } }
-    .install-pulse { animation: install-pulse 2s infinite; color: var(--green) !important; }
-
-    /* ── Bank Card Icon (CSS) ── */
-    .card-icon {
-      width: 40px; height: 26px; border-radius: 5px; position: relative;
-      background: var(--bank-color, #64748b); box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      flex-shrink: 0; overflow: hidden;
-    }
-    .card-icon::before {
-      content: ''; position: absolute; top: 4px; left: 6px;
-      width: 14px; height: 10px; border-radius: 2px;
-      background: rgba(255,255,255,0.25);
-    }
-    .card-icon::after {
-      content: ''; position: absolute; bottom: 4px; right: 5px;
-      width: 14px; height: 9px; border-radius: 3px 3px 4px 4px;
-      background: rgba(255,255,255,0.35);
-    }
-    .card-icon.white-card { background: #cbd5e1; }
-    .card-icon.white-card::before { background: rgba(0,0,0,0.06); }
-    .card-icon.white-card::after { background: rgba(0,0,0,0.08); }
-    /* Light text chip for yellow cards */
-    .card-icon.dark-chip::before { background: rgba(0,0,0,0.12); }
-    .card-icon.dark-chip::after { background: rgba(0,0,0,0.08); }
-
-    /* ── Selected List ── */
-    .sel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .sel-title { font-size: 15px; font-weight: 600; color: var(--text-sec); }
-    .sel-count { font-size: 13px; color: var(--text-muted); }
-    .sel-group { margin-bottom: 6px; }
-    .sel-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 14px; border-radius: var(--radius-sm);
-      background: var(--bg-card); border: 1px solid var(--border);
-      margin-bottom: 6px; transition: border-color 0.15s;
-    }
-    .sel-item:hover { border-color: var(--border-hi); }
-    .sel-item-info { flex: 1; min-width: 0; }
-    .sel-item-cat { font-size: 15px; font-weight: 500; }
-    .sel-item-bank-row { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
-    .sel-item-bank { font-size: 14px; font-weight: 900; -webkit-text-stroke: 0.8px var(--stroke-color); text-shadow: 0 1px 6px var(--shadow-color), 0 0 8px var(--shadow-color); }
-    .sel-item-pct { font-size: 20px; font-weight: 900; flex-shrink: 0; -webkit-text-stroke: 0.7px var(--stroke-color); text-shadow: 0 1px 6px var(--shadow-color), 0 0 8px var(--shadow-color); }
-    .sel-item-limit { font-size: 11px; color: var(--text-muted); }
-    .sel-empty {
-      display: flex; flex-direction: column; align-items: center;
-      padding: 60px 20px; gap: 12px; text-align: center;
-    }
-    .sel-empty svg { color: var(--text-muted); opacity: 0.3; }
-    .sel-empty p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
-
-    /* ── Bank Cards Grid ── */
-    .bank-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
-    .bank-card {
-      background: var(--bg-card); border: 2px solid var(--border);
-      border-radius: var(--radius); overflow: hidden;
-      transition: all 0.2s ease;
-    }
-    .bank-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-    .bank-card.empty-alert { border-color: color-mix(in srgb, #eab308 50%, var(--border)); }
-    .bank-card.empty-alert:hover { border-color: color-mix(in srgb, #eab308 70%, var(--border)); }
-    .bank-card.selected { border-color: color-mix(in srgb, var(--bank-color, var(--green)) 40%, transparent); }
-    .bank-card.expanded { border-color: var(--bank-color, var(--green)); box-shadow: 0 0 20px color-mix(in srgb, var(--bank-color, var(--green)) 15%, transparent); }
-    .bc-header { padding: 14px 16px; }
-    .bc-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-    .bc-info { min-width: 0; flex: 1; display: flex; align-items: flex-start; gap: 12px; }
-    .bc-text { min-width: 0; flex: 1; }
-    .bc-name { font-size: 16px; font-weight: 600; }
-    .bc-website {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 12px; color: var(--text-muted); text-decoration: none;
-      margin-top: 3px; transition: color 0.15s;
-    }
-    .bc-website:visited { color: var(--text-muted); }
-    .bc-website:hover { color: var(--bank-color, var(--green)); }
-    .bc-website svg { width: 12px; height: 12px; }
-    .bc-desc { font-size: 12px; color: var(--text-muted); margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .bc-count { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-    .bc-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-    .badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 3px 8px; border-radius: 6px;
-      font-size: 11px; font-weight: 600; color: #fff;
-    }
-    .badge svg { width: 13px; height: 13px; }
-    .rec-badge {
-      background: #eab308; color: #000; font-size: 10px; font-weight: 700;
-      padding: 1px 6px; border-radius: 4px; margin-left: 6px;
-      letter-spacing: 0.5px;
-    }
-
-    /* ── Categories ── */
-    .categories { padding: 0 16px 16px; border-top: 1px solid var(--border); margin-top: 10px; padding-top: 14px; }
-    .categories-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .categories-month { font-size: 14px; font-weight: 500; }
-    .categories-list { max-height: 65vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-
-    /* ── Category Row (larger for touch) ── */
-    .cat-row {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 14px; border-radius: var(--radius-sm);
-      border: 1px solid var(--border); transition: all 0.15s ease;
-      cursor: pointer;
-    }
-    .cat-row:hover { border-color: var(--border-hi); }
-    .cat-row.checked {
-      background: color-mix(in srgb, var(--bank-color, var(--green)) 6%, transparent);
-      border-color: color-mix(in srgb, var(--bank-color, var(--green)) 35%, transparent);
-    }
-    .cat-row.recommended {
-      border-left: 3px solid #eab308;
-    }
-    .cat-row.recommended.checked {
-      border-left: 3px solid #eab308;
-    }
-    .cat-checkbox {
-      width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
-      border: 2px solid var(--border-hi); display: flex;
-      align-items: center; justify-content: center; transition: all 0.15s;
-    }
-    .cat-row.checked .cat-checkbox {
-      background: var(--bank-color, var(--green)); border-color: var(--bank-color, var(--green));
-    }
-    .cat-checkbox svg { width: 16px; height: 16px; color: #fff; opacity: 0; }
-    .cat-row.checked .cat-checkbox svg { opacity: 1; }
-    .cat-info { flex: 1; min-width: 0; }
-    .cat-name { font-size: 15px; font-weight: 500; color: var(--text-muted); transition: color 0.15s; }
-    .cat-row.checked .cat-name { color: var(--text); }
-    .cat-details { display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap; }
-    .cat-percent { font-size: 16px; font-weight: 700; }
-    .cat-percent.high { color: var(--green); }
-    .cat-percent.mid { color: #4ade80; }
-    .cat-percent.low { color: var(--lime); }
-    .cat-percent.lowest { color: var(--yellow); }
-    .cat-limit {
-      font-size: 11px; color: var(--text-muted);
-      background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 4px;
-    }
-    .cat-note-toggle {
-      padding: 6px; width: 34px; height: 34px; border: none;
-      background: transparent; color: var(--text-muted); cursor: pointer;
-      border-radius: 6px; display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s; flex-shrink: 0;
-    }
-    .cat-note-toggle:hover { background: rgba(255,255,255,0.06); }
-    .cat-note-toggle svg { width: 18px; height: 18px; }
-    .cat-notes-box { padding: 4px 14px 12px 50px; display: flex; flex-direction: column; gap: 4px; }
-    .cat-note-text { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
-    .cat-note-link {
-      font-size: 12px; color: var(--bank-color, var(--green)); text-decoration: none;
-      display: inline-flex; align-items: center; gap: 4px;
-    }
-    .cat-note-link:hover { text-decoration: underline; }
-    .cat-note-link svg { width: 12px; height: 12px; }
-
-    /* ── Category Limit ── */
-    .cat-row.disabled { opacity: 0.4; cursor: not-allowed; }
-    .cat-row.disabled:hover { border-color: var(--border); }
-    .cat-row.disabled .cat-checkbox { border-style: dashed; }
-    .cat-limit-bar {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 13px; color: var(--text-sec); margin-bottom: 10px;
-      padding: 8px 12px; border-radius: var(--radius-sm);
-      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-    }
-    .cat-limit-bar.full { border-color: var(--yellow); background: rgba(234,179,8,0.06); }
-    .cat-limit-bar.over { border-color: var(--red); background: rgba(239,68,68,0.06); }
-    .cat-limit-controls { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-    .cat-limit-btn {
-      width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
-      background: transparent; color: var(--text-sec); cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: 600; transition: all 0.15s;
-      font-family: var(--font); padding: 0; line-height: 1;
-    }
-    .cat-limit-btn:hover { background: rgba(255,255,255,0.08); border-color: var(--border-hi); color: var(--text); }
-    .cat-limit-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-    .cat-limit-value {
-      font-weight: 700; min-width: 20px; text-align: center;
-      font-size: 14px; color: var(--text);
-    }
-    .cat-limit-label { font-size: 11px; color: var(--text-muted); }
-    .cat-limit-progress {
-      flex: 1; height: 4px; border-radius: 2px;
-      background: rgba(255,255,255,0.08); overflow: hidden;
-    }
-    .cat-limit-progress-fill { height: 100%; border-radius: 2px; transition: width 0.2s, background 0.2s; }
-    .cat-limit-progress-fill.ok { background: var(--green); }
-    .cat-limit-progress-fill.full { background: var(--yellow); }
-    .cat-limit-progress-fill.over { background: var(--red); }
-
-    /* ── Dop Categories ── */
-    .dop-tag {
-      display: inline-flex; align-items: center;
-      font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
-      color: var(--text-sec);
-      background: rgba(255,255,255,0.06);
-      padding: 1px 5px; border-radius: 4px; margin-left: 4px;
-    }
-    .dop-section-title {
-      font-size: 13px; font-weight: 600; color: var(--text-sec); margin-bottom: 8px;
-    }
-    .dop-new-row {
-      display: flex; gap: 8px; align-items: center;
-      margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
-    }
-    .dop-input {
-      padding: 8px 12px; border-radius: var(--radius-sm);
-      border: 1px solid var(--border); background: var(--bg-input);
-      color: var(--text); font-size: 14px; font-family: var(--font); outline: none;
-    }
-    .dop-input:focus { border-color: var(--green); }
-    .dop-input::placeholder { color: var(--text-muted); }
-    .dop-cat-item {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);
-    }
-    .dop-cat-item:hover { border-color: var(--border-hi); }
-    .dop-cat-name { flex: 1; font-size: 14px; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dop-cat-base { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
-    .dop-cat-input {
-      width: 52px; padding: 6px 8px; border-radius: 6px;
-      border: 1px solid var(--border); background: var(--bg-input);
-      color: var(--text); font-size: 13px; font-family: var(--font);
-      text-align: center; outline: none;
-    }
-    .dop-cat-input:focus { border-color: var(--green); }
-    .dop-cat-input::placeholder { color: var(--text-muted); }
-    .dop-cat-total { font-size: 14px; font-weight: 700; color: var(--green); white-space: nowrap; }
-    .dop-cat-remove {
-      width: 26px; height: 26px; border-radius: 6px; border: none;
-      background: transparent; color: var(--red); cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-family: var(--font); padding: 0; flex-shrink: 0;
-    }
-    .dop-cat-remove:hover { background: rgba(239,68,68,0.1); }
-    .dop-custom-item {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 12px; border-radius: var(--radius-sm);
-      border: 1px solid color-mix(in srgb, var(--green) 30%, var(--border));
-      background: color-mix(in srgb, var(--green) 3%, transparent);
-    }
-    .dop-custom-name { flex: 1; font-size: 14px; font-weight: 500; }
-    .dop-custom-pct { font-size: 14px; font-weight: 700; color: var(--green); }
-    .dop-excl-toggle {
-      display: flex; align-items: center; gap: 4px; cursor: pointer;
-      font-size: 11px; color: var(--text-muted); white-space: nowrap;
-      padding: 3px 6px; border-radius: 4px; border: none; background: transparent;
-      font-family: var(--font); transition: all 0.15s; flex-shrink: 0;
-    }
-    .dop-excl-toggle:hover { color: var(--text-sec); background: rgba(255,255,255,0.04); }
-    .dop-excl-toggle.active { color: var(--green); }
-    .dop-excl-toggle svg { width: 13px; height: 13px; }
-    .cat-row.excluded .cat-name::after {
-      content: '∞';
-      font-size: 10px; font-weight: 700; color: var(--text-muted);
-      margin-left: 4px;
-    }
-
-    /* ── Empty ── */
-    .empty {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 80px 20px; gap: 16px; text-align: center;
-    }
-    .empty svg { color: var(--text-muted); opacity: 0.3; }
-    .empty p { font-size: 14px; color: var(--text-muted); }
-
-    /* ── Modals ── */
-    .overlay {
-      position: fixed; inset: 0; z-index: 100;
-      background: var(--bg-overlay); display: flex;
-      align-items: center; justify-content: center; padding: 16px;
-      animation: fadeIn 0.15s ease;
-    }
-    .overlay.hidden { display: none; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .modal {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: var(--radius); width: 100%; max-width: 440px;
-      max-height: 90vh; overflow-y: auto;
-      animation: slideUp 0.2s ease;
-    }
-    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    .modal-header { padding: 20px 20px 0; }
-    .modal-title { font-size: 17px; font-weight: 600; }
-    .modal-dop-badge {
-      display: inline-block; font-size: 11px; font-weight: 600; color: #eab308;
-      background: rgba(234,179,8,0.1); padding: 1px 6px; border-radius: 4px; margin-left: 6px;
-    }
-    .modal-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-    .modal-body { padding: 16px 20px; }
-    .modal-footer { padding: 12px 20px 20px; display: flex; justify-content: flex-end; gap: 8px; }
-
-    .tabs {
-      display: flex; gap: 4px; background: rgba(255,255,255,0.04);
-      border-radius: var(--radius-sm); padding: 4px; margin-bottom: 12px;
-    }
-    .tab {
-      flex: 1; padding: 10px; border: none; border-radius: 6px;
-      font-size: 13px; font-weight: 500; cursor: pointer;
-      background: transparent; color: var(--text-muted);
-      transition: all 0.15s; display: flex; align-items: center;
-      justify-content: center; gap: 6px; font-family: var(--font);
-    }
-    .tab:hover { color: var(--text); }
-    .tab.active { background: var(--green); color: #fff; }
-    .tab svg { width: 16px; height: 16px; }
-
-    .upload-zone {
-      border: 2px dashed var(--border); border-radius: var(--radius-sm);
-      padding: 32px 16px; text-align: center; cursor: pointer;
-      transition: border-color 0.15s;
-    }
-    .upload-zone:hover { border-color: rgba(34,197,94,0.5); }
-    .upload-zone svg { margin: 0 auto 8px; color: var(--text-muted); }
-    .upload-zone p { font-size: 13px; color: var(--text-muted); }
-
-    .textarea {
-      width: 100%; min-height: 150px; padding: 12px;
-      background: var(--bg-input); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); color: var(--text);
-      font-size: 13px; font-family: 'SF Mono', Monaco, monospace;
-      resize: vertical; outline: none;
-    }
-    .textarea:focus { border-color: var(--green); }
-    .textarea::placeholder { color: var(--text-muted); }
-    .error-text { font-size: 13px; color: var(--red); margin-top: 8px; }
-
-    .import-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec); margin-bottom: 6px; }
-    .import-input {
-      width: 100%; padding: 10px 12px;
-      background: var(--bg-input); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); color: var(--text);
-      font-size: 15px; font-family: var(--font); outline: none;
-      transition: border-color 0.15s;
-    }
-    .import-input:focus { border-color: var(--green); }
-    .import-input.import-input-warn { border-color: #f59e0b; }
-    .import-input.import-input-warn:focus { border-color: #d97706; }
-    .import-input::placeholder { color: var(--text-muted); }
-
-    .action-card {
-      display: flex; align-items: flex-start; gap: 12px;
-      padding: 14px; border-radius: var(--radius-sm);
-      border: 1px solid var(--border); cursor: pointer;
-      text-align: left; width: 100%; background: transparent;
-      color: var(--text); transition: all 0.15s; font-family: var(--font);
-    }
-    .action-card:hover { border-color: var(--border-hi); background: rgba(255,255,255,0.03); }
-    .action-card svg { flex-shrink: 0; margin-top: 2px; }
-    .action-card-title { font-size: 14px; font-weight: 500; }
-    .action-card-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-
-    /* ── Tab Panels ── */
-    .panel { display: none; }
-    .panel.active { display: block; }
-
-    /* ── Tab Swipe Animation ── */
-    .main { transition: opacity 0.15s ease, transform 0.15s ease; }
-    .main.slide-out-left { opacity: 0; transform: translateX(-30px); }
-    .main.slide-out-right { opacity: 0; transform: translateX(30px); }
-
-    /* ── Responsive ── */
-    @media (min-width: 641px) {
-      .bank-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
-      .bank-grid.has-expanded { grid-template-columns: 1fr; }
-      .sel-item { padding: 12px 16px; }
-    }
-    @media (max-width: 480px) {
-      .header-title { font-size: 16px; }
-      .bc-name { font-size: 15px; }
-      .btn-icon { width: 36px; height: 36px; padding: 6px; }
-    }
-
-    /* ── Screenshot Help Modal ── */
-    .screenshot-steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-    .screenshot-step {
-      display: flex; gap: 12px; align-items: flex-start;
-      padding: 12px; border-radius: var(--radius-sm);
-      border: 1px solid var(--border); background: rgba(255,255,255,0.02);
-    }
-    .screenshot-step-num {
-      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
-      background: var(--green); color: #fff; font-size: 13px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .screenshot-step-text { font-size: 13px; line-height: 1.5; color: var(--text-sec); }
-    .screenshot-step-text strong { color: var(--text); }
-    .screenshot-prompt-box {
-      position: relative; margin-bottom: 12px;
-    }
-    .screenshot-prompt-label {
-      font-size: 12px; font-weight: 600; color: var(--text-sec); margin-bottom: 6px;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .screenshot-prompt-text {
-      width: 100%; min-height: 120px; padding: 12px;
-      background: rgba(0,0,0,0.2); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); color: var(--text);
-      font-size: 12px; font-family: 'SF Mono', Monaco, 'Courier New', monospace;
-      line-height: 1.5; resize: none; outline: none;
-    }
-    html.light .screenshot-prompt-text { background: rgba(0,0,0,0.04); }
-    .screenshot-copy-btn {
-      position: absolute; top: 28px; right: 8px;
-      padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
-      background: var(--bg-card); color: var(--text-sec); cursor: pointer;
-      font-size: 11px; font-weight: 500; display: flex; align-items: center; gap: 4px;
-      font-family: var(--font); transition: all 0.15s;
-    }
-    .screenshot-copy-btn:hover { border-color: var(--green); color: var(--green); }
-    .screenshot-copy-btn svg { width: 14px; height: 14px; }
-    .screenshot-links {
-      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;
-    }
-    .screenshot-link {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 8px 12px; border-radius: var(--radius-sm);
-      border: 1px solid var(--border); background: transparent;
-      color: var(--text); font-size: 13px; text-decoration: none;
-      cursor: pointer; font-family: var(--font); transition: all 0.15s;
-    }
-    .screenshot-link:hover { border-color: var(--green); color: var(--green); background: rgba(34,197,94,0.05); }
-    .screenshot-link svg { width: 16px; height: 16px; }
-    .screenshot-example-toggle {
-      padding: 6px 0; border: none; background: transparent;
-      color: var(--text-muted); font-size: 12px; cursor: pointer;
-      font-family: var(--font); display: flex; align-items: center; gap: 4px;
-      transition: color 0.15s;
-    }
-    .screenshot-example-toggle:hover { color: var(--text-sec); }
-    .screenshot-example-toggle svg { width: 14px; height: 14px; transition: transform 0.2s; }
-    .screenshot-example-toggle.open svg { transform: rotate(90deg); }
-    .screenshot-example {
-      display: none; margin-top: 8px; padding: 12px;
-      background: rgba(0,0,0,0.2); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); font-size: 11px;
-      font-family: 'SF Mono', Monaco, monospace; line-height: 1.5;
-      color: var(--text-sec); max-height: 200px; overflow-y: auto;
-      white-space: pre-wrap; word-break: break-all;
-    }
-    html.light .screenshot-example { background: rgba(0,0,0,0.03); }
-    .screenshot-example.show { display: block; }
-    .screenshot-divider {
-      height: 1px; background: var(--border); margin: 12px 0;
-    }
-    .help-btn {
-      width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
-      background: transparent; color: var(--text-muted); cursor: pointer;
-      font-size: 14px; font-weight: 700; display: inline-flex;
-      align-items: center; justify-content: center; transition: all 0.15s;
-      font-family: var(--font); padding: 0; flex-shrink: 0;
-    }
-    .help-btn { background: #eab308; color: #000; border-color: #eab308; font-weight: 800; }
-    .help-btn:hover { background: #ca8a04; border-color: #ca8a04; color: #000; }
-
-    /* ── Toast ── */
-    .toast {
-      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-      background: var(--bg-card); border: 1px solid var(--border);
-      color: var(--text); padding: 10px 20px; border-radius: var(--radius-sm);
-      font-size: 13px; z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      animation: toastIn 0.2s ease, toastOut 0.3s ease 2.7s forwards;
-      pointer-events: none; white-space: nowrap;
-    }
-    @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+  <!-- ── Onboarding ── -->
+  <div class="onboarding hidden" id="onboarding">
+    <div class="onboarding-slides">
+      <div class="onboarding-slide active" data-slide="0">
+        <div class="onboarding-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+        </div>
+        <div class="onboarding-title">Кэшбэк Ассистент</div>
+        <div class="onboarding-desc">Отслеживайте категории кэшбэка по всем вашим картам в одном месте</div>
+      </div>
+      <div class="onboarding-slide" data-slide="1">
+        <div class="onboarding-icon" style="background:rgba(234,179,8,0.1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#eab308"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="onboarding-title">Импорт COIN</div>
+        <div class="onboarding-desc">Загрузите файл категорий вашего банка в формате COIN — это занимает пару секунд</div>
+      </div>
+      <div class="onboarding-slide" data-slide="2">
+        <div class="onboarding-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/><circle cx="12" cy="12" r="10" stroke-dasharray="4 4"/></svg>
+        </div>
+        <div class="onboarding-title">Выбирайте выгодно</div>
+        <div class="onboarding-desc">Отметьте нужные категории — приложение запомнит ваш выбор на каждый месяц</div>
+      </div>
+    </div>
+    <div class="onboarding-dots" id="onboardingDots">
+      <div class="onboarding-dot active"></div>
+      <div class="onboarding-dot"></div>
+      <div class="onboarding-dot"></div>
+    </div>
+    <div class="onboarding-actions">
+      <button class="btn btn-primary" id="onboardingNextBtn" onclick="onboardingNext()" style="width:100%;padding:14px;font-size:16px">Далее</button>
+      <button class="onboarding-skip" onclick="closeOnboarding()">Пропустить</button>
+    </div>
+  </div>
 
   <!-- ── Header ── -->
   <header class="header">
     <div class="header-row">
-      <div class="header-title" id="headerTitle" onclick="easterEggTap()">Кэшбэк Ассистент</div>
+      <div class="header-title" id="headerTitle" onclick="easterEggTap()">Кэшбэк <span style="color:#eab308;font-size:12px;font-weight:700;vertical-align:super">BETA</span></div>
       <div class="header-actions">
         <button class="btn btn-icon" id="installBtn" onclick="installPwa()" title="Добавить на главный экран" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="btn btn-icon" onclick="openHelpModal()" title="Справка" id="helpBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </button>
         <button class="btn btn-icon" onclick="toggleTheme()" title="Сменить тему" id="themeBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="themeIconMoon"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -581,6 +77,21 @@
       </div>
     </div>
   </header>
+
+  <!-- ── Monthly Reminder Banner ── -->
+  <div class="reminder-banner" id="reminderBanner">
+    <div class="reminder-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+    </div>
+    <div class="reminder-text">
+      <div class="reminder-title">Выберите категории</div>
+      <div class="reminder-desc" id="reminderDesc">Новый месяц — не забудьте выбрать категории кэшбэка!</div>
+    </div>
+    <div class="reminder-actions">
+      <button class="btn btn-primary" onclick="goSelectCategories()" style="min-height:36px;padding:6px 14px;font-size:13px">Выбрать</button>
+      <button class="reminder-close" onclick="dismissReminder()" title="Не напоминать">×</button>
+    </div>
+  </div>
 
   <!-- ── Main ── -->
   <main class="main" id="app"></main>
@@ -606,7 +117,7 @@
     <div class="modal">
       <div class="modal-header">
         <div class="modal-title">Импорт COIN файла</div>
-        <div class="modal-desc" id="importDesc">Загрузите файл COIN 2.0 или вставьте JSON текст</div>
+        <div class="modal-desc" id="importDesc">Загрузите файл COIN 0.9.0 — файлом, текстом или по ссылке</div>
       </div>
       <div class="modal-body">
         <!-- Step 1: Input -->
@@ -619,6 +130,10 @@
             <button class="tab" id="tabPaste" onclick="switchImportTab('paste')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
               Текст
+            </button>
+            <button class="tab" id="tabUrl" onclick="switchImportTab('url')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+              URL
             </button>
           </div>
           <div id="importFileZone">
@@ -635,7 +150,21 @@
               Импортировать
             </button>
           </div>
+          <div id="importUrlZone" style="display:none">
+            <input type="url" class="import-input" id="importUrlInput" placeholder="https://example.com/cashback.json" autocomplete="off" style="font-size:14px">
+            <div style="font-size:12px;color:var(--text-muted);margin-top:6px">Вставьте ссылку на COIN JSON файл</div>
+            <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="handleUrlImport()" id="importUrlBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Загрузить по ссылке
+            </button>
+          </div>
           <div class="error-text hidden" id="importError"></div>
+          <div style="margin-top:10px;text-align:center">
+            <button style="background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;font-family:var(--font);display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;transition:all 0.15s" onclick="closeImportModal();setTimeout(openScreenshotHelp,200)" onmouseover="this.style.color='var(--text-sec)';this.style.background='var(--hover-soft)'" onmouseout="this.style.color='var(--text-muted)';this.style.background='none'">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Импорт из скриншота (AI)
+            </button>
+          </div>
         </div>
         <!-- Step 2: Preview / Confirm -->
         <div id="importStep2" style="display:none">
@@ -825,7 +354,142 @@
     </div>
   </div>
 
+  <!-- ── Changelog Modal ── -->
+  <div class="overlay hidden" id="changelogModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">🚀 Приложение обновлено</div>
+        <div class="modal-desc" id="changelogDesc"></div>
+      </div>
+      <div class="modal-body" id="changelogBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeChangelogModal()" style="width:100%">Понятно</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Help Modal ── -->
+  <div class="overlay hidden" id="helpModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Справка</div>
+      </div>
+      <div class="modal-body">
+        <div class="help-tabs">
+          <button class="help-tab active" onclick="switchHelpTab('banks',this)">Банки</button>
+          <button class="help-tab" onclick="switchHelpTab('mcc',this)">MCC</button>
+          <button class="help-tab" onclick="switchHelpTab('header',this)">Ещё</button>
+        </div>
+
+        <div class="help-panel active" id="helpBanks">
+          <div class="help-content">
+            <h4>Добавление банков</h4>
+            <p>Нажмите <kbd>COIN</kbd> вверху списка банков. Три способа:</p>
+            <ul>
+              <li><strong>Файл</strong> — выберите JSON файл COIN 0.9.0</li>
+              <li><strong>Текст</strong> — вставьте JSON текст напрямую</li>
+              <li><strong>URL</strong> — вставьте ссылку на COIN JSON файл</li>
+            </ul>
+
+            <h4>Импорт из скриншота (AI)</h4>
+            <p>Если нет COIN файла — сделайте скриншот категорий в банковском приложении, загрузите в AI-чат (DeepSeek, ChatGPT, Gemini) с готовым промптом. AI вернёт JSON — вставьте через вкладку «Текст». Промпт и ссылки на AI-чаты — внизу модалки импорта.</p>
+
+            <h4>Выбор категорий</h4>
+            <p>Нажмите <kbd>Выбрать</kbd> на карточке банка. Отметьте нужные категории — выбор сохраняется на текущий месяц.</p>
+
+            <h4>Лимит категорий</h4>
+            <p>Некоторые банки ограничивают количество выбираемых категорий (например, 5 из 10). Лимит настраивается кнопками <kbd>+</kbd> <kbd>−</kbd> вверху списка. Строка прогресса показывает заполнение.</p>
+
+            <h4>Категории «не в лимите»</h4>
+            <p>Отметьте категорию как «не в лимите» (кнопка <kbd>∞</kbd> рядом) — она будет всегда выбрана и не учитывается в лимите. Используйте для кэшбэка «На все покупки» и подобных.</p>
+
+            <h4>Доп. категории</h4>
+            <p>Кнопка <kbd>Доп.</kbd> позволяет:</p>
+            <ul>
+              <li><strong>Новая</strong> — создать свою категорию с произвольным %</li>
+              <li><strong>Доп. %</strong> — добавить бонусный % к существующей категории банка (показывается как «доп. +X%»)</li>
+            </ul>
+
+            <h4>Рамки карточек банков</h4>
+            <ul>
+              <li><span style="display:inline-block;width:12px;height:12px;border:2px solid color-mix(in srgb, #eab308 50%, var(--border));border-radius:2px;vertical-align:middle;margin-right:4px"></span> <strong>Жёлто-золотая рамка</strong> — категории не выбраны. Нажмите «Выбрать» и отметьте нужные.</li>
+              <li><span style="display:inline-block;width:12px;height:12px;border:2px solid color-mix(in srgb, var(--green) 40%, transparent);border-radius:2px;vertical-align:middle;margin-right:4px"></span> <strong>Цветная рамка</strong> — есть выбранные категории.</li>
+              <li><span style="display:inline-block;width:12px;height:12px;border:2px solid var(--green);border-radius:2px;vertical-align:middle;margin-right:4px"></span> <strong>Яркая рамка</strong> — список категорий раскрыт.</li>
+            </ul>
+
+            <h4>Кнопки в карточке банка</h4>
+            <ul>
+              <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px;color:#eab308"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span> <strong>Рекомендации</strong> — алгоритм автоматически выбирает категории с максимальным %, учитывая <strong>все</strong> ваши банки. Рекомендуемые категории выделены жёлтой полоской слева и жёлтой молнией.</li>
+              <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> <strong>Прошлый</strong> — скопировать выбор с прошлого месяца</li>
+              <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></span> <strong>Месяц</strong> — перейти к следующему месяцу (очищает выбор)</li>
+              <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:-6px"><polyline points="6 9 12 15 18 9"/></svg></span> <strong>↑ ↓</strong> — переместить банк выше/ниже в списке</li>
+            </ul>
+
+            <h4>Обновление банка</h4>
+            <p>Если импортировать COIN файл с названием уже существующего банка — предложит «Обновить категории» (сбросить выбор) или «Обновить и сохранить выбор» (сохранить совпадающие).</p>
+          </div>
+        </div>
+
+        <div class="help-panel" id="helpMcc">
+          <div class="help-content">
+            <h4>Что такое MCC?</h4>
+            <p>MCC (Merchant Category Code) — 4-значный код, который банк присваивает каждому платежу по типу магазина. По MCC банк определяет, к какой категории относится покупка.</p>
+
+            <h4>Зачем нужен справочник?</h4>
+            <p>Названия категорий у банков разные. Справочник помогает выяснить, какой MCC у конкретного магазина и попадает ли он под кэшбэк.</p>
+
+            <h4>Поиск</h4>
+            <p>Введите код (например, <kbd>5812</kbd>) или часть названия (например, <kbd>ресторан</kbd>) — все группы с совпадениями раскроются автоматически, совпадения подсветятся.</p>
+
+            <h4>Связь с кэшбэком</h4>
+            <p>Когда банк пишет «Рестораны 5%», он имеет в виду определённые MCC (обычно 5811, 5812 и др.). Если магазин зарегистрирован с другим MCC — кэшбэк может не начисляться. Это частая причина «не прошёл кэшбэк».</p>
+
+            <div class="help-note">💡 Совет: перед крупной покупкой проверьте MCC магазина в чеке или выписке и сверьте с категориями кэшбэка вашего банка.</div>
+          </div>
+        </div>
+
+        <div class="help-panel" id="helpHeader">
+          <div class="help-content">
+            <h4>Смена темы</h4>
+            <p>Кнопка 🌙 / ☀️ переключает между тёмной и светлой темой. Выбор сохраняется между запусками.</p>
+
+            <h4>Экспорт / Восстановление</h4>
+            <p>Все данные хранятся локально на устройстве. Для переноса на другое:</p>
+            <ul>
+              <li><strong>Экспорт</strong> — скачивает JSON файл со всеми банками, выборами и настройками</li>
+              <li><strong>Восстановление</strong> — загружает ранее сохранённый файл</li>
+            </ul>
+
+            <h4>Очистка данных</h4>
+            <p>Кнопка 🗑️ удаляет все банки, выборы и настройки. Действие необратимо (если нет экспорта).</p>
+
+            <h4>Установка на телефон</h4>
+            <p>Кнопка ⬇️ в шапке (когда доступна) добавляет приложение на главный экран как PWA. Работает оффлайн после первой загрузки.</p>
+
+            <h4>Напоминание</h4>
+            <p>Жёлтый баннер «Выберите категории» появляется 1-го числа каждого месяца. Нажмите «Выбрать» — перейдёт к банкам. Кнопка <kbd>×</kbd> скроет до следующего месяца.</p>
+
+            <h4>Версия</h4>
+            <p>Нажмите на заголовок <strong>7 раз</strong> — покажется текущая версия (easter egg).</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeHelpModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
 <script>
+// ─── Changelog (declared early — used by easter egg & SW handler) ─────────────────
+const CHANGELOG_KEY = 'cashback-beta-changelog-seen';
+const CHANGELOG = {
+  '2025.04.27-r5': [
+    'Описание карты теперь отображается на всю ширину внизу карточки банка',
+    'Попап «Что нового» при обновлении приложения',
+  ]
+};
+
 // ─── Easter Egg: tap title 7 times to show version ─────────────────────────────────
 let _tapCount = 0, _tapTimer = null;
 function easterEggTap() {
@@ -834,16 +498,8 @@ function easterEggTap() {
   _tapTimer = setTimeout(() => { _tapCount = 0; }, 1500);
   if (_tapCount >= 7) {
     _tapCount = 0;
-    // Get SW cache version
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage('getVersion');
-    }
-    navigator.serviceWorker.addEventListener('message', function handler(e) {
-      if (e.data && e.data.version) {
-        showToast('⚙ V' + e.data.version);
-        navigator.serviceWorker.removeEventListener('message', handler);
-      }
-    });
+    const seen = localStorage.getItem(CHANGELOG_KEY);
+    showToast('⚙ V' + (seen || '?'));
   }
 }
 
@@ -864,11 +520,13 @@ window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredInstallPrompt = e;
   updateInstallBtn();
+  checkMonthlyReminder();
 });
 
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
   updateInstallBtn();
+  checkMonthlyReminder();
   showToast('Приложение добавлено на главный экран');
 });
 
@@ -886,6 +544,7 @@ function installPwa() {
   deferredInstallPrompt.userChoice.then((result) => {
     if (result.outcome === 'accepted') deferredInstallPrompt = null;
     updateInstallBtn();
+  checkMonthlyReminder();
   });
 }
 
@@ -905,8 +564,53 @@ function updateInstallBtn() {
   }
 }
 
+// ─── Changelog Modal ───────────────────────────────────────────────────────────────
+function openChangelogModal(version) {
+  const changes = CHANGELOG[version];
+  if (!changes || changes.length === 0) return;
+  document.getElementById('changelogDesc').textContent = 'Версия ' + version;
+  const body = document.getElementById('changelogBody');
+  let html = '<div class="changelog-version">Что изменилось:</div>';
+  html += '<ul class="changelog-list">';
+  for (const item of changes) {
+    html += '<li>' + escHtml(item) + '</li>';
+  }
+  html += '</ul>';
+  body.innerHTML = html;
+  document.getElementById('changelogModal').classList.remove('hidden');
+  localStorage.setItem(CHANGELOG_KEY, version);
+}
+
+function closeChangelogModal() {
+  document.getElementById('changelogModal').classList.add('hidden');
+}
+
+function checkChangelog() {
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage('getVersion');
+  }
+}
+
+// ─── Help Modal ───────────────────────────────────────────────────────────────────
+function openHelpModal() {
+  document.getElementById('helpModal').classList.remove('hidden');
+  // Auto-select tab based on current view
+  if (currentTab === 'mcc') switchHelpTab('mcc', document.querySelector('.help-tab:nth-child(2)'));
+  else switchHelpTab('banks', document.querySelector('.help-tab:first-child'));
+}
+function closeHelpModal() {
+  document.getElementById('helpModal').classList.add('hidden');
+}
+function switchHelpTab(tab, btn) {
+  document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.help-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const panelId = tab === 'banks' ? 'helpBanks' : tab === 'mcc' ? 'helpMcc' : 'helpHeader';
+  document.getElementById(panelId).classList.add('active');
+}
+
 // ─── Theme Toggle ────────────────────────────────────────────────────────────────
-const THEME_KEY = 'cashback-theme';
+const THEME_KEY = 'cashback-beta-theme';
 
 function toggleTheme() {
   const isLight = document.documentElement.classList.toggle('light');
@@ -932,24 +636,34 @@ function initTheme() {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').then(reg => {
     // Auto-update when new version is available
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'activated') {
-          // Reload to get new version (data is in localStorage, safe)
-          window.location.reload();
-        }
-      });
-    });
     // If there's a waiting update from previous session, activate it
     if (reg.waiting) {
       reg.waiting.postMessage('skipWaiting');
     }
+    // Reload once when new SW takes control
     reg.addEventListener('controllerchange', () => {
       window.location.reload();
     });
+    // Check changelog only when SW is stable (no pending update)
+    if (!reg.installing && !reg.waiting) {
+      checkChangelog();
+    }
   }).catch(() => {});
 }
+
+// ─── SW message handler for changelog & version ─────────────────────────────────
+navigator.serviceWorker.addEventListener('message', function handler(e) {
+  if (e.data && e.data.version) {
+    const ver = e.data.version.replace(/^β/, '');
+    const seen = localStorage.getItem(CHANGELOG_KEY);
+    if (seen !== ver && CHANGELOG[ver]) {
+      openChangelogModal(ver);
+    } else {
+      // Mark as seen even if no changelog entry
+      localStorage.setItem(CHANGELOG_KEY, ver);
+    }
+  }
+});
 
 // ─── Embedded COIN Data ─────────────────────────────────────────────────────────
 const EMBEDDED_COINS = [
@@ -1007,7 +721,7 @@ function bankColorStyle(bankName) {
 }
 
 // ─── State ──────────────────────────────────────────────────────────────────────
-const STORAGE_KEY = 'cashback-app-data';
+const STORAGE_KEY = 'cashback-beta-app-data';
 const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 let banks = [];
 let expandedBankId = null;
@@ -1019,7 +733,7 @@ let pendingImportCoinData = null; // parsed COIN data waiting for bank name conf
 function genId() { return Date.now().toString(36) + Math.random().toString(36).substring(2); }
 function getCurrentMonth() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 function formatMonth(m) { const [y,mo] = m.split('-'); return MONTH_NAMES[parseInt(mo)-1] + ' ' + y; }
-const BACKUP_KEY = 'cashback-app-backup';
+const BACKUP_KEY = 'cashback-beta-app-backup';
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ banks }));
   // Auto-backup: save selections separately for recovery
@@ -1034,7 +748,7 @@ function saveData() {
       };
     }
     // Save history for current month
-    const histKey = 'cashback-history-' + bank.coinData.provider.name + '-' + bank.month;
+    const histKey = 'cashback-beta-history-' + bank.coinData.provider.name + '-' + bank.month;
     const histData = {
       s: bank.selectedCategories,
       e: bank.customExtras,
@@ -1459,7 +1173,7 @@ function render() {
   try {
     const app = document.getElementById('app');
     if (banks.length === 0) {
-      app.innerHTML = '<div class="empty"><div style="width:64px;height:64px">' + ICONS.download + '</div><p>Нет добавленных банков</p><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-primary" onclick="openImportModal()" style="gap:8px"><span style="width:18px;height:18px">' + ICONS.plus + '</span>Импорт COIN</button><button class="help-btn" onclick="openScreenshotHelp()" title="Импорт из скриншота">?</button></div></div>';
+      app.innerHTML = '<div class="empty"><div style="width:64px;height:64px">' + ICONS.download + '</div><p>Нет добавленных банков</p><div style="display:flex;align-items:center;gap:8px"><button class="btn btn-primary" onclick="openImportModal()" style="gap:8px"><span style="width:18px;height:18px">' + ICONS.plus + '</span>Импорт COIN</button></div></div>';
       return;
     }
     if (currentTab === 'selected') renderSelected(app);
@@ -1551,7 +1265,6 @@ function renderBanks(app) {
   html += '<span style="font-size:15px;color:var(--text-sec)">Банковские карты</span>';
   html += '<div style="display:flex;align-items:center;gap:6px">';
   html += '<button class="btn btn-primary btn-sm" onclick="openImportModal()" style="gap:6px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:16px;height:16px">' + ICONS.download + '</span>COIN</button>';
-  html += '<button class="help-btn" onclick="openScreenshotHelp()" title="Импорт из скриншота" style="width:36px;height:36px">?</button>';
   html += '</div></div>';
   html += '<div class="bank-grid' + (isExpanded ? ' has-expanded' : '') + '">';
 
@@ -1568,25 +1281,33 @@ function renderBanks(app) {
 
     const cardCls = 'bank-card' + (isExp ? ' expanded' : selCount > 0 ? ' selected' : ' empty-alert');
     html += '<div class="' + cardCls + '" style="--bank-color:' + bc.color + '">';
-    html += '<div class="bc-header"><div class="bc-row"><div class="bc-info">';
-    html += renderCardIcon(bank.coinData.provider.name);
-    html += '<div class="bc-text">';
+    const bankIdx = banks.indexOf(bank);
+    const bankMax = getMaxCategories(bank);
+    html += '<div class="bc-header"><table class="bc-table"><tr>';
+    html += '<td class="bc-cell-reorder"><div class="bc-reorder">';
+    html += '<button class="bc-reorder-btn" onclick="event.stopPropagation();moveBank(\'' + bank.id + '\',-1)" title="Выше"' + (bankIdx === 0 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>';
+    html += '<button class="bc-reorder-btn" onclick="event.stopPropagation();moveBank(\'' + bank.id + '\',1)" title="Ниже"' + (bankIdx === banks.length - 1 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>';
+    html += '</div></td>';
+    html += '<td class="bc-cell-icon">' + renderCardIcon(bank.coinData.provider.name) + '</td>';
+    html += '<td class="bc-cell-text"><div class="bc-text">';
     html += '<div class="bc-name">' + escHtml(bank.coinData.provider.name) + '</div>';
     if (bank.coinData.provider.website) {
       html += '<a href="' + escHtml(bank.coinData.provider.website) + '" target="_blank" rel="noopener noreferrer" class="bc-website"><span style="width:12px;height:12px">' + ICONS.extLink + '</span><span>' + escHtml(bank.coinData.provider.website.replace(/^https?:\/\//, '')) + '</span></a>';
     }
-    if (bank.coinData.provider.notes) {
-      html += '<div class="bc-desc">' + escHtml(bank.coinData.provider.notes) + '</div>';
-    }
-    const bankMax = getMaxCategories(bank);
-    html += '<div class="bc-count">' + selCount + ' выбрано' + (bankMax > 0 ? ' (лимит ' + bankMax + ')' : '') + '</div>';
-    html += '</div></div><div class="bc-actions">';
-    if (selCount > 0) {
-      html += '<span class="badge" style="background:' + bc.color + '"><span style="width:13px;height:13px">' + ICONS.check + '</span>' + selCount + '</span>';
-    }
+    html += '</div></td>';
+    html += '<td class="bc-cell-actions"><div style="display:flex;align-items:flex-start;gap:4px;justify-content:flex-end">';
+    html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
     html += '<button class="btn' + (isExp ? ' btn-primary' : ' btn-outline') + ' btn-sm" onclick="toggleExpand(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:16px;height:16px">' + (isExp ? ICONS.chevUp : ICONS.chevDown) + '</span>' + (isExp ? 'Свернуть' : 'Выбрать') + '</button>';
+    if (selCount > 0) {
+      html += '<span class="badge" style="background:' + bc.color + '">' + selCount + '/' + (bankMax > 0 ? bankMax : '∞') + '</span>';
+    }
+    html += '</div>';
     html += '<button class="btn btn-sm btn-danger btn-icon" onclick="deleteBank(\'' + bank.id + '\')" title="Удалить" style="min-height:36px"><span style="width:16px;height:16px">' + ICONS.trash + '</span></button>';
-    html += '</div></div></div>';
+    html += '</div></td></tr></table></div>';
+    if (bank.coinData.provider.notes) {
+      html += '<div class="bc-desc-footer">' + escHtml(bank.coinData.provider.notes) + '</div>';
+    }
+    html += '</div>';
 
     if (isExp) {
       const rec = getRecommendation()[bank.id] || new Set();
@@ -1699,9 +1420,7 @@ function toggleCat(bankId, category) {
 }
 
 function toggleExpand(bankId) {
-  console.log('[toggleExpand] bankId:', bankId, 'was:', expandedBankId, 'banks:', banks.map(b => b.id + ':' + b.coinData.provider.name));
   expandedBankId = expandedBankId === bankId ? null : bankId;
-  console.log('[toggleExpand] now expandedBankId:', expandedBankId);
   render();
 }
 
@@ -1719,6 +1438,55 @@ function deleteBank(bankId) {
   if (expandedBankId === bankId) expandedBankId = null;
   saveData(); render(); updateBadge();
 }
+function moveBank(bankId, direction) {
+  const idx = banks.findIndex(b => b.id === bankId);
+  if (idx < 0) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= banks.length) return;
+  [banks[idx], banks[newIdx]] = [banks[newIdx], banks[idx]];
+  saveData(); render();
+}
+
+// ─── Onboarding ──────────────────────────────────────────────────────────────────
+const ONBOARDING_KEY = 'cashback-beta-onboarded';
+let onboardingSlide = 0;
+
+function showOnboarding() {
+  const el = document.getElementById('onboarding');
+  if (!el) return;
+  el.classList.remove('hidden');
+  onboardingSlide = 0;
+  updateOnboardingSlide();
+}
+function closeOnboarding() {
+  const el = document.getElementById('onboarding');
+  if (el) el.classList.add('hidden');
+  localStorage.setItem(ONBOARDING_KEY, '1');
+}
+function updateOnboardingSlide() {
+  document.querySelectorAll('.onboarding-slide').forEach((s, i) => {
+    s.classList.toggle('active', i === onboardingSlide);
+  });
+  document.querySelectorAll('.onboarding-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === onboardingSlide);
+  });
+  const btn = document.getElementById('onboardingNextBtn');
+  if (btn) {
+    if (onboardingSlide === 2) {
+      btn.textContent = 'Начать';
+      btn.onclick = closeOnboarding;
+    } else {
+      btn.textContent = 'Далее';
+      btn.onclick = onboardingNext;
+    }
+  }
+}
+function onboardingNext() {
+  if (onboardingSlide < 2) {
+    onboardingSlide++;
+    updateOnboardingSlide();
+  }
+}
 
 function toggleNotes(btn) {
   const box = btn.parentElement.nextElementSibling;
@@ -1734,6 +1502,7 @@ function openImportModal() {
   document.getElementById('importError').classList.add('hidden');
   document.getElementById('importBankNameError').classList.add('hidden');
   document.getElementById('pasteText').value = '';
+  document.getElementById('importUrlInput').value = '';
   pendingImportCoinData = null;
   switchImportTab('file');
   showImportStep1();
@@ -1747,7 +1516,7 @@ function showImportStep1() {
   document.getElementById('importStep2').style.display = 'none';
   document.getElementById('importBackBtn').style.display = 'none';
   document.getElementById('importConfirmBtn').style.display = 'none';
-  document.getElementById('importDesc').textContent = 'Загрузите файл COIN 2.0 или вставьте JSON текст';
+  document.getElementById('importDesc').textContent = 'Загрузите файл COIN 0.9.0 — файлом, текстом или по ссылке';
 }
 function showImportStep2(coinData) {
   document.getElementById('importStep1').style.display = 'none';
@@ -1801,8 +1570,10 @@ function pluralCategory(n) {
 function switchImportTab(mode) {
   document.getElementById('tabFile').classList.toggle('active', mode === 'file');
   document.getElementById('tabPaste').classList.toggle('active', mode === 'paste');
+  document.getElementById('tabUrl').classList.toggle('active', mode === 'url');
   document.getElementById('importFileZone').style.display = mode === 'file' ? '' : 'none';
   document.getElementById('importPasteZone').style.display = mode === 'paste' ? '' : 'none';
+  document.getElementById('importUrlZone').style.display = mode === 'url' ? '' : 'none';
   document.getElementById('importError').classList.add('hidden');
 }
 function showImportError(msg) { const el = document.getElementById('importError'); el.textContent = msg; el.classList.remove('hidden'); }
@@ -1824,6 +1595,19 @@ function handlePasteImport() {
   const text = document.getElementById('pasteText').value.trim();
   if (!text) { showImportError('Вставьте JSON текст'); return; }
   try { previewCoinImport(JSON.parse(text)); } catch(err) { showImportError('Неверный формат JSON'); }
+}
+
+function handleUrlImport() {
+  const url = document.getElementById('importUrlInput').value.trim();
+  if (!url) { showImportError('Вставьте ссылку на JSON файл'); return; }
+  try { new URL(url); } catch(e) { showImportError('Неверный формат ссылки'); return; }
+  const btn = document.getElementById('importUrlBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="width:16px;height:16px" class="btn-spinner"></span> Загрузка...';
+  fetch(url)
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(text => { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Загрузить по ссылке'; try { previewCoinImport(JSON.parse(text)); } catch(err) { showImportError('Неверный формат JSON по ссылке'); } })
+    .catch(err => { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Загрузить по ссылке'; showImportError('Не удалось загрузить: ' + err.message); });
 }
 
 function previewCoinImport(coinData) {
@@ -1855,11 +1639,9 @@ function confirmImport() {
 }
 
 function processImport(coinData) {
-  console.log('[processImport] start, provider:', coinData.provider?.name);
   const v = validateCoin(coinData);
   if (!v.valid) { showImportError(v.error); return; }
   const existing = banks.find(b => b.coinData.provider.name === coinData.provider.name);
-  console.log('[processImport] existing:', existing ? existing.id : null);
   if (existing) {
     pendingCoinData = coinData;
     closeImportModal();
@@ -1872,7 +1654,6 @@ function processImport(coinData) {
   const newBank = addBank(coinData);
   expandedBankId = newBank.id;
   switchToTab('banks');
-  console.log('[processImport] added bank id:', newBank.id, 'expandedBankId:', expandedBankId, 'tab:', currentTab, 'banks count:', banks.length);
   render();
 }
 
@@ -1891,7 +1672,6 @@ function addBank(coinData, keepSelections, oldBank) {
 }
 
 function handleDuplicate(action) {
-  console.log('[handleDuplicate] action:', action, 'pending:', pendingCoinData?.provider?.name);
   if (!pendingCoinData || action === 'cancel') { pendingCoinData = null; document.getElementById('duplicateModal').classList.add('hidden'); return; }
   const existing = banks.find(b => b.coinData.provider.name === pendingCoinData.provider.name);
   let newBank = null;
@@ -1907,7 +1687,6 @@ function handleDuplicate(action) {
   if (newBank) {
     expandedBankId = newBank.id;
     switchToTab('banks');
-    console.log('[handleDuplicate] newBank id:', newBank.id, 'expandedBankId:', expandedBankId, 'tab:', currentTab);
   }
   render();
 }
@@ -2055,14 +1834,13 @@ const MCC_DATA = [
   { group: 'Аптеки/Медицина', codes: [
     [5912, 'Аптеки'],
     [5921, 'Лицензированные аптеки (без рецепта)'],
-    [5940, 'Велосипедные магазины'],
     [5970, 'Художественные / ремесленные магазины'],
     [5971, 'Художественные галереи'],
     [7299, 'Медицинские услуги (прочие)'],
     [8011, 'Врачи / стоматологи'],
     [8021, 'Стоматологи / ортодонты'],
     [8031, 'Остеопаты'],
-    [8041, 'Хiropractors'],
+    [8041, 'Хиропрактики'],
     [8042, 'Оптики / офтальмологи'],
     [8043, 'Оптика (продажа очков)'],
     [8044, 'Оптометристы'],
@@ -2073,13 +1851,14 @@ const MCC_DATA = [
     [8099, 'Медицинские услуги (прочие)'],
   ]},
   { group: 'Транспорт', codes: [
+    [4011, 'Железные дороги (региональные)'],
     [4111, 'Транспорт / железные дороги'],
-    [4121, 'Такси'],
+    [4121, 'Такси / лимузины'],
     [4131, 'Автобусы / маршрутки'],
     [4214, 'Грузоперевозки / курьеры'],
-    [4784, 'Платные дороги / мосты / тоннели'],
-    [4511, 'Авиакомпании'],
+    [4511, 'Авиакомпании / авиалинии'],
     [4582, 'Аэропорты / аэровокзалы'],
+    [4784, 'Платные дороги / мосты / тоннели'],
     [4789, 'Транспортные услуги (прочие)'],
   ]},
   { group: 'Одежда', codes: [
@@ -2090,36 +1869,37 @@ const MCC_DATA = [
     [5651, 'Семейные магазины одежды'],
     [5661, 'Обувные магазины'],
   ]},
-  { group: 'Спорт', codes: [
+  { group: 'Спорт/Фитнес', codes: [
     [5940, 'Велосипедные магазины'],
-    [5941, 'Спорные товары'],
-    [5945, 'Спорные товары / велосипеды'],
+    [5941, 'Спортивные товары'],
+    [5945, 'Спортивные товары / велосипеды'],
     [5946, 'Кемпинг / туризм'],
-    [7012, 'Сдача в аренду оборудования (таймшер)'],
     [7911, 'Танцевальные студии'],
+    [7933, 'Боулинг'],
+    [7941, 'Спортивные клубы / поля для гольфа'],
     [7992, 'Гольф-клубы'],
-    [7993, 'Фитнес-клубы'],
+    [7993, 'Фитнес-клубы / спортзалы'],
     [7994, 'Спортивные залы / фитнес'],
-    [7995, 'Боулинг'],
-    [7996, 'Бильярд / пул'],
-    [7997, 'Клубы (-membership)'],
+    [7995, 'Бильярд / пул'],
+    [7996, 'Клубы (membership)'],
+    [7997, 'Клубы (общественные)'],
     [7998, 'Аквапарки / водные развлечения'],
     [7999, 'Развлекательные / спортивные услуги (прочие)'],
   ]},
-  { group: 'Кино', codes: [
+  { group: 'Кино/Развлечения', codes: [
     [7829, 'Видеопрокат'],
     [7832, 'Кинотеатры'],
     [7841, 'Видеосалоны (прокат)'],
+    [7922, 'Театры / симфонические оркестры'],
+    [7929, 'Развлекательные услуги (прочие)'],
+    [7991, 'Туристические / горнолыжные курорты'],
   ]},
   { group: 'Книги', codes: [
     [5942, 'Книжные магазины'],
+    [5994, 'Газетные киоски'],
+  ]},
+  { group: 'Животные', codes: [
     [5995, 'Зоомагазины'],
-    [5999, 'Магазины (прочие)'],
-    [6531, 'Квартирное бюро (риелторы)'],
-    [6532, 'Агенты по продаже недвижимости'],
-    [6533, 'Агенты по аренде недвижимости'],
-    [6538, 'Аукционы недвижимости'],
-    [6540, 'Управление недвижимостью'],
   ]},
   { group: 'Связь', codes: [
     [4812, 'Телекоммуникационное оборудование / услуги'],
@@ -2127,13 +1907,12 @@ const MCC_DATA = [
     [4814, 'Услуги связи (прочие)'],
     [4899, 'Кабельное / спутниковое ТВ'],
   ]},
-  { group: 'Дом', codes: [
+  { group: 'Дом/Электроника', codes: [
     [5200, 'Строительные материалы / лесопиломатериалы'],
     [5211, 'Строительные материалы (лес, строймат.)'],
     [5231, 'Стеклянные / зеркальные / витринные магазины'],
     [5251, 'Железные / сантехнические товары'],
     [5261, 'Номерные / скобяные магазины'],
-    [5271, 'Мобильные дома / автодома'],
     [5712, 'Магазины электротоваров / радио'],
     [5713, 'Магазины бытовой электроники'],
     [5714, 'Магазины компьютеров / ПО'],
@@ -2149,7 +1928,7 @@ const MCC_DATA = [
     [5094, 'Драгоценные камни / ювелирные изделия'],
     [5944, 'Часы / часы-ручки / ювелирные магазины'],
   ]},
-  { group: 'Цветы', codes: [
+  { group: 'Цветы/Табак', codes: [
     [5992, 'Цветочные магазины'],
     [5993, 'Сигарные магазины'],
   ]},
@@ -2162,10 +1941,15 @@ const MCC_DATA = [
     [6511, 'Недвижимость (покупка/продажа)'],
     [6529, 'Удалённая аренда'],
     [6530, 'Услуги по недвижимости'],
+  ]},
+  { group: 'Недвижимость', codes: [
     [6531, 'Квартирное бюро (риелторы)'],
+    [6532, 'Агенты по продаже недвижимости'],
     [6533, 'Агенты по аренде недвижимости'],
     [6538, 'Аукционы недвижимости'],
     [6540, 'Управление недвижимостью'],
+    [7011, 'Аренда недвижимости (долгосрочная)'],
+    [7012, 'Таймшер'],
   ]},
   { group: 'Автомобили', codes: [
     [5511, 'Автодилеры / магазины новых авто'],
@@ -2180,88 +1964,29 @@ const MCC_DATA = [
     [7535, 'Автомойки'],
     [7538, 'Автосервисы (прочие)'],
     [7542, 'Мойка самообслуживания'],
-    [7549, 'Автосервисы (прочие 2)'],
+    [7549, 'Автосервисы (общие)'],
   ]},
-  { group: 'Красота/Фитнес', codes: [
+  { group: 'Красота', codes: [
     [7230, 'Парикмахерские / салоны красоты'],
-    [7296, 'Магазины одежды (прочие)'],
-    [7297, 'Магазины массажных салонов'],
     [7298, 'Салоны красоты / парикмахерские'],
     [7299, 'Салоны красоты / фитнес (прочие)'],
   ]},
-  { group: 'Доставка', codes: [
+  { group: 'Доставка/Маркетинг', codes: [
     [4215, 'Курьерские услуги'],
     [4225, 'Склады / хранение'],
-    [5960, 'Прямой маркетинг — маркетингInsurance'],
+    [5960, 'Прямой маркетинг — страхование'],
     [5961, 'Прямой маркетинг — каталог'],
-    [5962, 'Прямой маркетинг — прод. потребительские'],
+    [5962, 'Прямой маркетинг — потребительские товары'],
     [5963, 'Прямой маркетинг — туризм'],
     [5964, 'Прямой маркетинг — подписки'],
     [5965, 'Прямой маркетинг — оптовая торговля'],
-    [5966, 'Прямой маркетинг — Insurance'],
+    [5966, 'Прямой маркетинг — страхование 2'],
     [5967, 'Прямой маркетинг — розничная торговля'],
     [5968, 'Прямой маркетинг — услуги'],
     [5969, 'Прямой маркетинг (прочие)'],
     [7311, 'Службы доставки (прочие)'],
-    [7399, 'Службы бизнес-услуг (прочие)'],
   ]},
-  { group: 'Прочее', codes: [
-    [4011, 'Железные дороги (региональные)'],
-    [4121, 'Такси / лимузины'],
-    [4214, 'Грузоперевозки (прочие)'],
-    [4511, 'Авиалинии'],
-    [4722, 'Туристические агентства'],
-    [4723, 'Туристические агентства (оптовые)'],
-    [4732, 'Турагентства'],
-    [4900, 'Службы коммунального обслуживания'],
-    [5192, 'Садовые магазины / питомники'],
-    [5193, 'Магазины цветов / теплицы'],
-    [5198, 'Товары для дома (прочие)'],
-    [5200, 'Строительные материалы'],
-    [5211, 'Лесопилки / строительные материалы'],
-    [5231, 'Стеклянные / витринные магазины'],
-    [5271, 'Мобильные дома'],
-    [5533, 'Автозапчасти / аксессуары'],
-    [5733, 'Музыкальные инструменты'],
-    [5814, 'Фастфуд'],
-    [5940, 'Велосипеды'],
-    [5970, 'Художественные товары'],
-    [5994, 'Газетные киоски'],
-    [5999, 'Розничные магазины (прочие)'],
-    [7011, 'Аренда недвижимости (долгосрочная)'],
-    [7012, 'Таймшер'],
-    [7210, 'Прачечные / химчистки'],
-    [7211, 'Прачечные (самообслуживание)'],
-    [7216, 'Химчистки / прачечные'],
-    [7221, 'Фотостудии'],
-    [7276, 'Агентства знакомств'],
-    [7277, 'Клубы здоровья / бани'],
-    [7280, 'Информационные услуги'],
-    [7298, 'Салоны красоты'],
-    [7332, 'Полотёрные услуги (ковры, обои)'],
-    [7338, 'Услуги по вывозу мусора'],
-    [7339, 'Услуги по уборке / обслуживанию'],
-    [7342, 'Экзаменаторы (огнестрельное оружие)'],
-    [7349, 'Услуги по уборке (прочие)'],
-    [7361, 'Услуги по работе / найму'],
-    [7372, 'Услуги программирования'],
-    [7375, 'Услуги по аренде (прочие)'],
-    [7379, 'Услуги по ремонту ПК'],
-    [7392, 'Аналитические услуги'],
-    [7393, 'Детективные / охранные услуги'],
-    [7394, 'Услуги аренды оборудования'],
-    [7395, 'Услуги фото / копировальные'],
-    [7399, 'Бизнес-услуги (прочие)'],
-    [7512, 'Аренда автомобилей'],
-    [7513, 'Аренда грузовиков'],
-    [7519, 'Аренда трейлеров'],
-    [7523, 'Парковки / гаражи'],
-    [7531, 'Автосервисы'],
-    [7534, 'Шиномонтаж'],
-    [7535, 'Автомойки'],
-    [7538, 'СТО (прочие)'],
-    [7542, 'Автомойки самообслуживания'],
-    [7549, 'Автосервисы (прочие)'],
+  { group: 'Ремонт', codes: [
     [7622, 'Ремонт бытовой техники'],
     [7623, 'Ремонт кондиционеров'],
     [7629, 'Ремонт электрооборудования'],
@@ -2269,30 +1994,32 @@ const MCC_DATA = [
     [7641, 'Мебельные мастерские'],
     [7692, 'Сварочные мастерские'],
     [7699, 'Ремонт (прочее)'],
-    [7911, 'Танцевальные студии'],
-    [7922, 'Театры / симфонические оркестры'],
-    [7929, 'Развлекательные услуги (прочие)'],
-    [7932, 'Бильярдные / бильярдные залы'],
-    [7933, 'Боулинг'],
-    [7941, 'Спортивные клубы / поля для гольфа'],
-    [7991, 'Туристические / горнолыжные курорты'],
-    [7992, 'Гольф-клубы'],
-    [7993, 'Фитнес-клубы'],
-    [7994, 'Спортзалы'],
-    [7995, 'Бильярд / боулинг'],
-    [7996, 'Клубы (membership)'],
-    [7997, 'Клубы (membership 2)'],
-    [7998, 'Аквапарки'],
-    [7999, 'Развлечения (прочие)'],
-    [8011, 'Врачи'],
-    [8021, 'Стоматологи'],
-    [8031, 'Остеопаты'],
-    [8042, 'Оптики'],
-    [8043, 'Оптометристы'],
-    [8049, 'Медицинские услуги (прочие)'],
-    [8062, 'Больницы'],
-    [8071, 'Лаборатории'],
-    [8099, 'Медицинские услуги (прочие 2)'],
+    [7379, 'Услуги по ремонту ПК'],
+  ]},
+  { group: 'Бытовые услуги', codes: [
+    [7210, 'Прачечные / химчистки'],
+    [7211, 'Прачечные (самообслуживание)'],
+    [7216, 'Химчистки / прачечные'],
+    [7277, 'Клубы здоровья / бани'],
+    [7280, 'Информационные услуги'],
+    [7332, 'Полотёрные услуги (ковры, обои)'],
+    [7338, 'Услуги по вывозу мусора'],
+    [7339, 'Услуги по уборке / обслуживанию'],
+    [7349, 'Услуги по уборке (прочие)'],
+  ]},
+  { group: 'Бизнес-услуги', codes: [
+    [7296, 'Магазины одежды (прочие)'],
+    [7297, 'Магазины массажных салонов'],
+    [7361, 'Услуги по работе / найму'],
+    [7372, 'Услуги программирования'],
+    [7375, 'Услуги по аренде (прочие)'],
+    [7392, 'Аналитические услуги'],
+    [7393, 'Детективные / охранные услуги'],
+    [7394, 'Услуги аренды оборудования'],
+    [7395, 'Услуги фото / копировальные'],
+    [7399, 'Бизнес-услуги (прочие)'],
+  ]},
+  { group: 'Образование', codes: [
     [8211, 'Начальные / средние школы'],
     [8220, 'Колледжи / университеты'],
     [8241, 'Коррекционные школы'],
@@ -2300,6 +2027,9 @@ const MCC_DATA = [
     [8249, 'Образование (прочее)'],
     [8299, 'Образовательные услуги (прочие)'],
     [8351, 'Дошкольные учреждения / ясли'],
+  ]},
+  { group: 'Государственные', codes: [
+    [4900, 'Службы коммунального обслуживания'],
     [8398, 'Благотворительные и социальные организации'],
     [8675, 'Автомобильные ассоциации'],
     [8699, 'Профессиональные организации'],
@@ -2311,6 +2041,18 @@ const MCC_DATA = [
     [9400, 'Внутренние правительственные доходы'],
     [9402, 'Платежи (прочие)'],
     [9950, 'Внутренние правительственные закупки'],
+  ]},
+  { group: 'Прочее', codes: [
+    [4722, 'Туристические агентства'],
+    [4732, 'Турагентства'],
+    [5192, 'Садовые магазины / питомники'],
+    [5193, 'Магазины цветов / теплицы'],
+    [5198, 'Товары для дома (прочие)'],
+    [5271, 'Мобильные дома / автодома'],
+    [5999, 'Розничные магазины (прочие)'],
+    [7221, 'Фотостудии'],
+    [7276, 'Агентства знакомств'],
+    [7342, 'Экзаменаторы (огнестрельное оружие)'],
   ]},
 ];
 
@@ -2324,21 +2066,30 @@ function renderMCC(app) {
   html += '<span style="font-size:11px;color:var(--text-muted)">' + countMCCTotal() + ' кодов</span>';
   html += '</div>';
   html += '<div class="dop-new-row" style="margin-bottom:0;padding-bottom:12px;border-bottom:none">';
-  html += '<input type="text" class="dop-input" placeholder="Поиск по коду или описанию..." style="flex:1;min-width:0" value="' + escHtml(mccSearchQuery) + '" oninput="mccSearch(this.value)" onfocus="this.select()">';
+  html += '<input id="mcc-search-input" type="text" class="dop-input" placeholder="Поиск по коду или описанию..." style="flex:1;min-width:0" value="' + escHtml(mccSearchQuery) + '" oninput="mccSearchLive(this)" onfocus="this.select()">';
   html += '</div>';
-  html += '<div style="display:flex;flex-direction:column;gap:8px">';
+  html += '<div id="mcc-list">';
+  html += renderMCCList();
+  html += '</div></div>';
+  app.innerHTML = html;
+}
+
+function renderMCCList() {
+  let html = '<div style="display:flex;flex-direction:column;gap:8px">';
   const query = mccSearchQuery.toLowerCase().trim();
   const isSearching = query.length > 0;
+  let hasResults = false;
   for (const group of MCC_DATA) {
     const filtered = query
       ? group.codes.filter(c => String(c[0]).includes(query) || c[1].toLowerCase().includes(query))
       : group.codes;
     if (isSearching && filtered.length === 0) continue;
+    hasResults = hasResults || filtered.length > 0;
     const isExpanded = isSearching || mccExpandedGroups.has(group.group);
     html += '<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">';
     html += '<div onclick="toggleMCCGroup(\'' + escHtml(group.group).replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:var(--bg-card);border-bottom:' + (isExpanded ? '1px solid var(--border)' : 'none') + ';transition:background 0.15s">';
     html += '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:600;color:var(--text)">' + escHtml(group.group) + '</span>';
-    html += '<span style="font-size:11px;color:var(--text-muted);background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px">' + filtered.length + '</span></div>';
+    html += '<span style="font-size:11px;color:var(--text-muted);background:var(--tag-bg);padding:2px 6px;border-radius:4px">' + filtered.length + '</span></div>';
     html += '<span style="width:18px;height:18px;color:var(--text-muted);transition:transform 0.15s;transform:rotate(' + (isExpanded ? '180' : '0') + 'deg)">' + ICONS.chevDown + '</span>';
     html += '</div>';
     if (isExpanded) {
@@ -2354,11 +2105,11 @@ function renderMCC(app) {
     }
     html += '</div>';
   }
-  if (isSearching && html.indexOf('mcc-row') === -1 && html.indexOf('monospace') === -1) {
+  if (isSearching && !hasResults) {
     html = '<div class="empty" style="padding:40px 20px"><div style="width:48px;height:48px">' + ICONS.book + '</div><p>Ничего не найдено</p></div>';
   }
-  html += '</div></div>';
-  app.innerHTML = html;
+  html += '</div>';
+  return html;
 }
 
 function countMCCTotal() {
@@ -2367,9 +2118,10 @@ function countMCCTotal() {
   return total;
 }
 
-function mccSearch(query) {
-  mccSearchQuery = query;
-  render();
+function mccSearchLive(input) {
+  mccSearchQuery = input.value;
+  const list = document.getElementById('mcc-list');
+  if (list) list.innerHTML = renderMCCList();
 }
 
 function toggleMCCGroup(groupName) {
@@ -2427,6 +2179,67 @@ function clearBadge() {
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
 }
 
+// ─── Monthly Reminder ──────────────────────────────────────────────────────────
+const REMINDER_DISMISSED_KEY = 'cashback-beta-reminder-dismissed';
+
+function checkMonthlyReminder() {
+  if (banks.length === 0) return;
+  const now = new Date();
+  const dayOfMonth = now.getDate();
+  // Show reminder 1st-5th of month if user hasn't dismissed it
+  if (dayOfMonth > 5) return;
+  const dismissed = localStorage.getItem(REMINDER_DISMISSED_KEY);
+  if (dismissed === getCurrentMonth()) return;
+  // Check if any bank has no selections for current month
+  const emptyBanks = banks.filter(b => {
+    return b.month === getCurrentMonth() && b.selectedCategories.length === 0;
+  });
+  if (emptyBanks.length === 0) return;
+  // Build description
+  const names = emptyBanks.map(b => b.coinData.provider.name);
+  const descEl = document.getElementById('reminderDesc');
+  if (names.length === 1) {
+    descEl.textContent = '«' + names[0] + '» — категории не выбраны';
+  } else if (names.length <= 3) {
+    descEl.textContent = names.join(', ') + ' — категории не выбраны';
+  } else {
+    descEl.textContent = names.slice(0, 2).join(', ') + ' и ещё ' + (names.length - 2) + ' — категории не выбраны';
+  }
+  document.getElementById('reminderBanner').classList.add('show');
+  // Try browser notification
+  tryBrowserNotification(names);
+}
+
+function tryBrowserNotification(bankNames) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    new Notification('Кэшбэк Ассистент', {
+      body: bankNames.join(', ') + ' — выберите категории!',
+      icon: './icon-192.png',
+      tag: 'cashback-monthly-reminder'
+    });
+  } else if (Notification.permission === 'default') {
+    // Ask once, don't be annoying
+    Notification.requestPermission();
+  }
+}
+
+function goSelectCategories() {
+  document.getElementById('reminderBanner').classList.remove('show');
+  // Find first bank without selections and expand it
+  const emptyBank = banks.find(b => b.month === getCurrentMonth() && b.selectedCategories.length === 0);
+  if (emptyBank) {
+    expandedBankId = emptyBank.id;
+  }
+  switchToTab('banks');
+  render();
+}
+
+function dismissReminder() {
+  localStorage.setItem(REMINDER_DISMISSED_KEY, getCurrentMonth());
+  document.getElementById('reminderBanner').classList.remove('show');
+}
+
 // ─── Init ───────────────────────────────────────────────────────────────────────
 (function init() {
   initTheme();
@@ -2447,9 +2260,12 @@ function clearBadge() {
   if (totalSelected === 0 && banks.length > 0) {
     switchToTab('banks');
   }
+  // Onboarding
+  if (!localStorage.getItem(ONBOARDING_KEY)) { showOnboarding(); }
   render();
   updateBadge();
   updateInstallBtn();
+  checkMonthlyReminder();
 })();
 </script>
 </body>
