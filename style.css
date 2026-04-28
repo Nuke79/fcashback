@@ -168,6 +168,7 @@ body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: e
   background: var(--hover-faint);
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
+.bank-card.expanded .bc-desc-footer { border-top: none; }
 .bc-count { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 .bc-actions { display: inline-flex; align-items: center; gap: 4px; }
 .bc-reorder { display: inline-flex; flex-direction: column; gap: 1px; }
