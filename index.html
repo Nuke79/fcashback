@@ -53,10 +53,7 @@
   <!-- ── Header ── -->
   <header class="header">
     <div class="header-row">
-      <div style="position:relative;display:inline-flex;align-items:center">
-        <div class="header-title" id="headerTitle" onclick="easterEggTap()">Кэшбэк Ассистент</div>
-        <div class="header-badge" id="headerBadge" style="display:none" onclick="event.stopPropagation();debugBadge()"></div>
-      </div>
+      <div class="header-title" id="headerTitle" onclick="easterEggTap()">Кэшбэк Ассистент</div>
       <div class="header-actions">
         <button class="btn btn-icon" id="installBtn" onclick="installPwa()" title="Добавить на главный экран" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -91,6 +88,9 @@
       <div class="reminder-desc" id="reminderDesc">Новый месяц — не забудьте выбрать категории кэшбэка!</div>
     </div>
     <div class="reminder-actions">
+      <button class="reminder-cal-btn" onclick="downloadCalendarEvent()" title="Добавить в календарь">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </button>
       <button class="btn btn-primary" onclick="goSelectCategories()" style="min-height:36px;padding:6px 14px;font-size:13px">Выбрать</button>
       <button class="reminder-close" onclick="dismissReminder()" title="Не напоминать">×</button>
     </div>
@@ -357,6 +357,24 @@
     </div>
   </div>
 
+  <!-- ── Calendar Reminder Prompt ── -->
+  <div class="overlay hidden" id="calendarPrompt">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-header">
+        <div class="modal-title">📅 Напоминание в календаре</div>
+        <div class="modal-desc">Ежемесячное событие — не забудете выбрать категории 1-го числа</div>
+      </div>
+      <div class="modal-body" style="font-size:13px;color:var(--text-sec);line-height:1.7;text-align:center">
+        Повторяется каждый месяц.<br>
+        Работает с Google Календарём, Apple Календарём и другими.
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="dismissCalendarPrompt()">Позже</button>
+        <button class="btn btn-primary" onclick="addCalendarReminder()">Добавить</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Changelog Modal ── -->
   <div class="overlay hidden" id="changelogModal">
     <div class="modal">
@@ -471,6 +489,7 @@
 
             <h4>Напоминание</h4>
             <p>Жёлтый баннер «Выберите категории» появляется 1-го числа каждого месяца. Нажмите «Выбрать» — перейдёт к банкам. Кнопка <kbd>×</kbd> скроет до следующего месяца.</p>
+            <p>Кнопка <kbd>📅</kbd> в баннере скачивает файл календаря (.ics) с ежемесячным повторением — добавьте его в Google Календарь, Apple Календарь или другой, чтобы получать системное напоминание 1-го числа.</p>
 
             <h4>Версия</h4>
             <p>Нажмите на заголовок <strong>7 раз</strong> — покажется текущая версия (easter egg).</p>
@@ -487,6 +506,11 @@
 // ─── Changelog (declared early — used by easter egg & SW handler) ─────────────────
 const CHANGELOG_KEY = 'cashback-changelog-seen';
 const CHANGELOG = {
+  '2025.04.28': [
+    'Напоминание в календаре (.ics) — ежемесячное событие 1-го числа',
+    'Кнопка добавления в календарь в баннере напоминания',
+    'Запрос календаря после первого запуска (онбординг)',
+  ],
   '2025.04.27': [
     'Описание карты теперь отображается на всю ширину внизу карточки банка',
     'Попап «Что нового» при обновлении приложения',
@@ -516,7 +540,7 @@ function showToast(msg) {
   el.className = 'toast';
   el.textContent = msg;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  setTimeout(() => el.remove(), 2500);
 }
 
 // ─── PWA Install ────────────────────────────────────────────────────────────────
@@ -1469,6 +1493,7 @@ function closeOnboarding() {
   const el = document.getElementById('onboarding');
   if (el) el.classList.add('hidden');
   localStorage.setItem(ONBOARDING_KEY, '1');
+  showCalendarPrompt();
 }
 function updateOnboardingSlide() {
   document.querySelectorAll('.onboarding-slide').forEach((s, i) => {
@@ -2177,37 +2202,13 @@ function copyPrevMonth(bankId) {
 
 // ─── Badge API ──────────────────────────────────────────────────────────────────
 function updateBadge() {
+  if (!navigator.setAppBadge) return;
   const emptyBanks = banks.filter(b => b.selectedCategories.length === 0).length;
-  // In-app indicator (always works)
-  const el = document.getElementById('headerBadge');
-  if (el) {
-    el.style.display = emptyBanks > 0 ? '' : 'none';
-    el.textContent = emptyBanks;
-  }
-  // System badge (PWA only)
-  if (navigator.setAppBadge) {
-    if (emptyBanks > 0) navigator.setAppBadge(emptyBanks).catch(() => {});
-    else if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
-  }
+  if (emptyBanks > 0) navigator.setAppBadge(emptyBanks).catch(() => {});
+  else if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
 }
 function clearBadge() {
-  const el = document.getElementById('headerBadge');
-  if (el) el.style.display = 'none';
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
-}
-
-function debugBadge() {
-  const mode = window.matchMedia('(display-mode: standalone)').matches ? 'PWA' : 'browser';
-  const emptyBanks = banks.filter(b => b.selectedCategories.length === 0).length;
-  const line1 = 'Badge API: ' + (navigator.setAppBadge ? 'YES' : 'NO') + ' | Mode: ' + mode;
-  const line2 = 'Empty banks: ' + emptyBanks;
-  showToast(line1);
-  setTimeout(() => showToast(line2), 400);
-  if (navigator.setAppBadge) {
-    navigator.setAppBadge(1).then(
-      () => setTimeout(() => showToast('setAppBadge(1): OK'), 800)
-    ).catch(e => setTimeout(() => showToast('setAppBadge(1): ' + e.message), 800));
-  }
 }
 
 // ─── Monthly Reminder ──────────────────────────────────────────────────────────
@@ -2237,22 +2238,6 @@ function checkMonthlyReminder() {
     descEl.textContent = names.slice(0, 2).join(', ') + ' и ещё ' + (names.length - 2) + ' — категории не выбраны';
   }
   document.getElementById('reminderBanner').classList.add('show');
-  // Try browser notification
-  tryBrowserNotification(names);
-}
-
-function tryBrowserNotification(bankNames) {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'granted') {
-    new Notification('Кэшбэк Ассистент', {
-      body: bankNames.join(', ') + ' — выберите категории!',
-      icon: './icon-192.png',
-      tag: 'cashback-monthly-reminder'
-    });
-  } else if (Notification.permission === 'default') {
-    // Ask once, don't be annoying
-    Notification.requestPermission();
-  }
 }
 
 function goSelectCategories() {
@@ -2269,6 +2254,66 @@ function goSelectCategories() {
 function dismissReminder() {
   localStorage.setItem(REMINDER_DISMISSED_KEY, getCurrentMonth());
   document.getElementById('reminderBanner').classList.remove('show');
+}
+
+// ─── Calendar Reminder ──────────────────────────────────────────────────────────
+const CALENDAR_PROMPT_KEY = 'cashback-calendar-prompt-seen';
+
+function showCalendarPrompt() {
+  if (localStorage.getItem(CALENDAR_PROMPT_KEY)) return;
+  if (banks.length === 0) return;
+  document.getElementById('calendarPrompt').classList.remove('hidden');
+}
+
+function dismissCalendarPrompt() {
+  localStorage.setItem(CALENDAR_PROMPT_KEY, '1');
+  document.getElementById('calendarPrompt').classList.add('hidden');
+}
+
+function addCalendarReminder() {
+  localStorage.setItem(CALENDAR_PROMPT_KEY, '1');
+  document.getElementById('calendarPrompt').classList.add('hidden');
+  downloadCalendarEvent();
+}
+
+function downloadCalendarEvent() {
+  // Next month 1st at 10:00 (floating time = user's local timezone)
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const y = next.getFullYear();
+  const m = String(next.getMonth() + 1).padStart(2, '0');
+  const dtstart = y + m + '01T100000';
+
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Cashback Assistant//RU',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    'DTSTART:' + dtstart,
+    'RRULE:FREQ=MONTHLY;BYMONTHDAY=1',
+    'SUMMARY:Кэшбэк — выберите категории',
+    'DESCRIPTION:Откройте приложение «Кэшбэк Ассистент» и выберите категории кэшбэка на новый месяц.',
+    'BEGIN:VALARM',
+    'TRIGGER:-P0D',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Выберите категории кэшбэка!',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cashback-reminder.ics';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Файл календаря загружен');
 }
 
 // ─── Init ───────────────────────────────────────────────────────────────────────
