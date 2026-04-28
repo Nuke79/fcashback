@@ -88,7 +88,7 @@
       <div class="reminder-desc" id="reminderDesc">Новый месяц — не забудьте выбрать категории кэшбэка!</div>
     </div>
     <div class="reminder-actions">
-      <button class="reminder-cal-btn" onclick="downloadCalendarEvent()" title="Добавить в календарь">
+      <button class="reminder-cal-btn" id="reminderCalBtn" onclick="addCalEvent(this)" title="Добавить в календарь">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       </button>
       <button class="btn btn-primary" onclick="goSelectCategories()" style="min-height:36px;padding:6px 14px;font-size:13px">Выбрать</button>
@@ -362,10 +362,10 @@
     <div class="modal" style="max-width:380px">
       <div class="modal-header">
         <div class="modal-title">📅 Напоминание в календаре</div>
-        <div class="modal-desc">Ежемесячное событие — не забудете выбрать категории 1-го числа</div>
+        <div class="modal-desc" id="calendarPromptDesc">Ежемесячное событие — не забудете выбрать категории</div>
       </div>
       <div class="modal-body" style="font-size:13px;color:var(--text-sec);line-height:1.7;text-align:center">
-        Откроется Google Календарь с готовым событием.<br>
+        <span id="calendarPromptDayText">Откроется Google Календарь с готовым событием на 1-е число.</span><br>
         Нажмите «Сохранить» — готово!
       </div>
       <div class="modal-footer">
@@ -489,8 +489,15 @@
 
             <h4>Напоминание</h4>
             <p>Жёлтый баннер «Выберите категории» появляется 1-го числа каждого месяца. Нажмите «Выбрать» — перейдёт к банкам. Кнопка <kbd>×</kbd> скроет до следующего месяца.</p>
-            <p>Кнопка <kbd>📅</kbd> открывает Google Календарь с готовым ежемесячным событием (1-го числа в 10:00). Нажмите «Сохранить» — и система будет напоминать каждый месяц. Доступна в баннере и здесь:</p>
-            <button class="btn btn-outline" onclick="downloadCalendarEvent()" style="margin-top:6px;width:100%">
+            <p>Кнопка <kbd>📅</kbd> открывает Google Календарь с готовым ежемесячным событием. Нажмите «Сохранить» — и система будет напоминать каждый месяц. Доступна в баннере и здесь:</p>
+
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+              <label style="font-size:13px;color:var(--text-sec);white-space:nowrap">День напоминания:</label>
+              <select id="reminderDaySelect" onchange="changeReminderDay(this.value)" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-family:var(--font);font-size:14px">
+              </select>
+            </div>
+
+            <button class="btn btn-outline" id="helpCalBtn" onclick="addCalEvent(this)" style="margin-top:8px;width:100%">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               Добавить в календарь
             </button>
@@ -511,9 +518,9 @@
 const CHANGELOG_KEY = 'cashback-changelog-seen';
 const CHANGELOG = {
   '2025.04.28': [
-    'Напоминание в календаре (.ics) — ежемесячное событие 1-го числа',
-    'Кнопка добавления в календарь в баннере напоминания',
-    'Запрос календаря после первого запуска (онбординг)',
+    'Напоминание в Google Календаре — настраиваемый день события',
+    'Кнопка «Обновить в календаре» при смене дня напоминания',
+    'Выбор дня напоминания в Справке → Ещё',
   ],
   '2025.04.27': [
     'Описание карты теперь отображается на всю ширину внизу карточки банка',
@@ -1729,7 +1736,7 @@ function handleDuplicate(action) {
 
 // ─── Export / Import Backup ─────────────────────────────────────────────────────
 function exportBackup() {
-  const blob = new Blob([JSON.stringify({ banks }, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ banks, settings: { reminderDay: getReminderDay(), theme: localStorage.getItem(THEME_KEY) } }, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'cashback-backup-' + new Date().toISOString().slice(0,10) + '.json';
@@ -1747,7 +1754,13 @@ function importBackup() {
         const data = JSON.parse(ev.target.result);
         if (data.banks && Array.isArray(data.banks)) {
           for (const bank of data.banks) { const v = validateCoin(bank.coinData); if (!v.valid) { alert('Ошибка: ' + v.error); return; } }
-          banks = data.banks; saveData(); expandedBankId = null; render();
+          banks = data.banks; saveData(); expandedBankId = null;
+          // Restore settings
+          if (data.settings) {
+            if (data.settings.reminderDay) setReminderDay(data.settings.reminderDay);
+            if (data.settings.theme) localStorage.setItem(THEME_KEY, data.settings.theme);
+          }
+          render(); updateCalendarButtons(); initReminderDaySelect(); initTheme();
         } else alert('Неверный формат файла');
       } catch(err) { alert('Не удалось прочитать файл'); }
     };
@@ -2261,11 +2274,85 @@ function dismissReminder() {
 }
 
 // ─── Calendar Reminder ──────────────────────────────────────────────────────────
+const CALENDAR_ADDED_KEY = 'cashback-calendar-added';
 const CALENDAR_PROMPT_KEY = 'cashback-calendar-prompt-seen';
+const REMINDER_DAY_KEY = 'cashback-reminder-day';
+const REMINDER_DAY_DEFAULT = 1;
+
+function getReminderDay() { return parseInt(localStorage.getItem(REMINDER_DAY_KEY)) || REMINDER_DAY_DEFAULT; }
+function setReminderDay(d) { localStorage.setItem(REMINDER_DAY_KEY, String(d)); }
+function isCalendarAdded() { return localStorage.getItem(CALENDAR_ADDED_KEY) === '1'; }
+function dayNoun(d) { return d + '-е'; }
+
+function initReminderDaySelect() {
+  const sel = document.getElementById('reminderDaySelect');
+  if (!sel) return;
+  const cur = getReminderDay();
+  for (let i = 1; i <= 28; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = dayNoun(i) + ' числа';
+    if (i === cur) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function changeReminderDay(newDay) {
+  const oldDay = getReminderDay();
+  newDay = parseInt(newDay);
+  setReminderDay(newDay);
+  if (newDay !== oldDay && isCalendarAdded()) {
+    // User changed the day and had already added calendar event
+    localStorage.removeItem(CALENDAR_ADDED_KEY);
+    showToast('Удалите старое событие в календаре и добавьте новое');
+  }
+  updateCalendarButtons();
+  updateCalendarPromptText();
+}
+
+function updateCalendarPromptText() {
+  const d = getReminderDay();
+  const descEl = document.getElementById('calendarPromptDesc');
+  const dayTextEl = document.getElementById('calendarPromptDayText');
+  if (descEl) descEl.textContent = 'Ежемесячное событие — не забудете выбрать категории ' + dayNoun(d) + ' числа';
+  if (dayTextEl) dayTextEl.textContent = 'Откроется Google Календарь с готовым событием на ' + dayNoun(d) + ' число.';
+}
+
+function updateCalendarButtons() {
+  const added = isCalendarAdded();
+  // Banner button
+  const rb = document.getElementById('reminderCalBtn');
+  if (rb) {
+    if (added) {
+      rb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>';
+      rb.title = 'Обновить событие в календаре';
+      rb.onclick = function(){addCalEvent(rb)};
+      rb.style.color = 'var(--yellow)';
+    } else {
+      rb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+      rb.title = 'Добавить в календарь';
+      rb.onclick = function(){addCalEvent(rb)};
+      rb.style.color = '';
+    }
+  }
+  // Help button
+  const hb = document.getElementById('helpCalBtn');
+  if (hb) {
+    if (added) {
+      hb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Обновить в календаре';
+      hb.disabled = false; hb.style.opacity = ''; hb.onclick = function(){addCalEvent(hb)};
+    } else {
+      hb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Добавить в календарь';
+      hb.disabled = false; hb.style.opacity = ''; hb.onclick = function(){addCalEvent(hb)};
+    }
+  }
+}
 
 function showCalendarPrompt() {
+  if (isCalendarAdded()) return;
   if (localStorage.getItem(CALENDAR_PROMPT_KEY)) return;
   if (banks.length === 0) return;
+  updateCalendarPromptText();
   document.getElementById('calendarPrompt').classList.remove('hidden');
 }
 
@@ -2276,21 +2363,34 @@ function dismissCalendarPrompt() {
 
 function addCalendarReminder() {
   localStorage.setItem(CALENDAR_PROMPT_KEY, '1');
+  localStorage.setItem(CALENDAR_ADDED_KEY, '1');
   document.getElementById('calendarPrompt').classList.add('hidden');
   openCalendarEvent();
+  updateCalendarButtons();
+}
+
+function addCalEvent(btn) {
+  localStorage.setItem(CALENDAR_ADDED_KEY, '1');
+  openCalendarEvent();
+  updateCalendarButtons();
 }
 
 function openCalendarEvent() {
-  // Next month 1st at 10:00 local
   const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const d = next.getFullYear() + String(next.getMonth() + 1).padStart(2, '0') + '01T100000';
-
+  const day = getReminderDay();
+  // Next occurrence of the chosen day
+  let y = now.getFullYear(), m = now.getMonth();
+  let next = new Date(y, m, day);
+  if (next <= now) {
+    // Day already passed this month, go to next month
+    next = new Date(y, m + 1, day);
+  }
+  const ds = next.getFullYear() + String(next.getMonth() + 1).padStart(2, '0') + String(day).padStart(2, '0') + 'T100000';
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: 'Кэшбэк — выберите категории',
-    dates: d + '/' + d,
-    recur: 'RRULE:FREQ=MONTHLY;BYMONTHDAY=1',
+    dates: ds + '/' + ds,
+    recur: 'RRULE:FREQ=MONTHLY;BYMONTHDAY=' + day,
     details: 'Откройте приложение «Кэшбэк Ассистент» и выберите категории кэшбэка на новый месяц.',
     location: ''
   });
@@ -2298,7 +2398,7 @@ function openCalendarEvent() {
 }
 
 function downloadCalendarEvent() {
-  openCalendarEvent();
+  addCalEvent(document.getElementById('reminderCalBtn'));
 }
 
 // ─── Init ───────────────────────────────────────────────────────────────────────
@@ -2323,10 +2423,7 @@ function downloadCalendarEvent() {
   }
   // Onboarding
   if (!localStorage.getItem(ONBOARDING_KEY)) { showOnboarding(); }
-  render();
-  updateBadge();
-  updateInstallBtn();
-  checkMonthlyReminder();
+  render(); updateBadge(); updateCalendarButtons(); updateInstallBtn(); checkMonthlyReminder(); initReminderDaySelect();
 })();
 </script>
 </body>
