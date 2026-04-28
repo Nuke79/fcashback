@@ -42,7 +42,7 @@ body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: e
   min-width: 16px; height: 16px; padding: 0 4px;
   border-radius: 8px; background: #ef4444; color: #fff;
   font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
-  pointer-events: none;
+  pointer-events: auto; cursor: pointer;
 }
 .header-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 

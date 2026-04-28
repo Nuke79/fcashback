@@ -7,666 +7,10 @@
   <meta name="color-scheme" content="dark light">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Кэшбэк Ассистент [BETA]</title>
+  <title>Кэшбэк Ассистент</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      color-scheme: dark;
-      --bg: #0f172a; --bg-card: #1e293b; --bg-input: #1e293b; --bg-overlay: rgba(0,0,0,0.6);
-      --text: #f1f5f9; --text-sec: #94a3b8; --text-muted: #64748b;
-      --border: #334155; --border-hi: #475569;
-      --green: #22c55e; --green-dim: #16a34a; --red: #ef4444; --yellow: #eab308; --lime: #84cc16;
-      --radius: 12px; --radius-sm: 8px;
-      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      --header-bg: rgba(15,23,42,0.88); --tab-bg: rgba(15,23,42,0.92);
-      --stroke-color: rgba(255,255,255,0.3); --shadow-color: rgba(0,0,0,0.7);
-      --hover: rgba(255,255,255,0.08); --hover-soft: rgba(255,255,255,0.04); --hover-faint: rgba(255,255,255,0.02); --hover-strong: rgba(255,255,255,0.1);
-      --tag-bg: rgba(255,255,255,0.06); --progress-bg: rgba(255,255,255,0.08);
-    }
-    html.light {
-      color-scheme: light;
-      --bg: #f1f5f9; --bg-card: #ffffff; --bg-input: #ffffff; --bg-overlay: rgba(0,0,0,0.4);
-      --text: #1e293b; --text-sec: #64748b; --text-muted: #94a3b8;
-      --border: #e2e8f0; --border-hi: #cbd5e1;
-      --header-bg: rgba(241,245,249,0.88); --tab-bg: rgba(241,245,249,0.92);
-      --stroke-color: rgba(0,0,0,0.15); --shadow-color: rgba(255,255,255,0.8);
-      --hover: rgba(0,0,0,0.06); --hover-soft: rgba(0,0,0,0.04); --hover-faint: rgba(0,0,0,0.04); --hover-strong: rgba(0,0,0,0.08);
-      --tag-bg: rgba(0,0,0,0.06); --progress-bg: rgba(0,0,0,0.08);
-    }
-    html { font-family: var(--font); background: var(--bg); color: var(--text); }
-    body { min-height: 100vh; -webkit-font-smoothing: antialiased; padding-bottom: env(safe-area-inset-bottom, 0); }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-    /* ── Header ── */
-    .header {
-      position: sticky; top: 0; z-index: 40;
-      background: var(--header-bg); backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: 10px 16px;
-    }
-    .header-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .header-title { font-size: 18px; font-weight: 700; }
-    .header-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
-
-    /* ── Bottom Tab Bar ── */
-    .tab-bar {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-      background: var(--tab-bg); backdrop-filter: blur(16px);
-      border-top: 1px solid var(--border);
-      display: flex; padding: 6px 8px;
-      padding-bottom: max(6px, env(safe-area-inset-bottom, 6px));
-    }
-    .tab-btn {
-      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-      padding: 8px 4px 6px; border: none; border-radius: 10px;
-      font-size: 11px; font-weight: 500; cursor: pointer;
-      background: transparent; color: var(--text-muted);
-      transition: all 0.15s; font-family: var(--font);
-    }
-    .tab-btn svg { width: 22px; height: 22px; }
-    .tab-btn.active { color: var(--green); background: rgba(34,197,94,0.08); }
-    .tab-btn:not(.active):hover { color: var(--text-sec); }
-
-    /* ── Main ── */
-    .main { max-width: 900px; margin: 0 auto; padding: 16px 12px 90px; }
-
-    /* ── Buttons ── */
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 8px 14px; border-radius: var(--radius-sm); border: none;
-      font-size: 14px; font-weight: 500; cursor: pointer;
-      transition: all 0.15s ease; white-space: nowrap;
-      background: transparent; color: var(--text-sec);
-      font-family: var(--font); min-height: 40px;
-    }
-    .btn:hover { background: var(--hover); color: var(--text); }
-    .btn-primary { background: var(--green); color: #fff; font-weight: 600; }
-    .btn-primary:hover { background: var(--green-dim); }
-    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .btn-outline:hover { border-color: var(--border-hi); background: var(--hover-soft); }
-    .btn-danger { color: var(--red); }
-    .btn-danger:hover { background: rgba(239,68,68,0.1); }
-    .btn-icon { padding: 8px; width: 40px; height: 40px; }
-    .btn svg { width: 18px; height: 18px; flex-shrink: 0; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    @keyframes btn-spin { to { transform: rotate(360deg); } }
-    .btn-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: btn-spin 0.6s linear infinite; }
-    @keyframes install-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); } 50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); } }
-    .install-pulse { animation: install-pulse 2s infinite; color: var(--green) !important; }
-
-    /* ── Bank Card Icon (CSS) ── */
-    .card-icon {
-      width: 40px; height: 26px; border-radius: 5px; position: relative;
-      background: var(--bank-color, #64748b); box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      flex-shrink: 0; overflow: hidden;
-    }
-    .card-icon::before {
-      content: ''; position: absolute; top: 4px; left: 6px;
-      width: 14px; height: 10px; border-radius: 2px;
-      background: rgba(255,255,255,0.25);
-    }
-    .card-icon::after {
-      content: ''; position: absolute; bottom: 4px; right: 5px;
-      width: 14px; height: 9px; border-radius: 3px 3px 4px 4px;
-      background: rgba(255,255,255,0.35);
-    }
-    .card-icon.white-card { background: #cbd5e1; }
-    .card-icon.white-card::before { background: rgba(0,0,0,0.06); }
-    .card-icon.white-card::after { background: rgba(0,0,0,0.08); }
-    /* Light text chip for yellow cards */
-    .card-icon.dark-chip::before { background: rgba(0,0,0,0.12); }
-    .card-icon.dark-chip::after { background: rgba(0,0,0,0.08); }
-
-    /* ── Selected List ── */
-    .sel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .sel-title { font-size: 15px; font-weight: 600; color: var(--text-sec); }
-    .sel-count { font-size: 13px; color: var(--text-muted); }
-    .sel-group { margin-bottom: 6px; }
-    .sel-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 14px; border-radius: var(--radius-sm);
-      background: var(--bg-card); border: 1px solid var(--border);
-      margin-bottom: 6px; transition: border-color 0.15s;
-    }
-    .sel-item:hover { border-color: var(--border-hi); }
-    .sel-item-info { flex: 1; min-width: 0; }
-    .sel-item-cat { font-size: 15px; font-weight: 500; }
-    .sel-item-bank-row { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
-    .sel-item-bank { font-size: 14px; font-weight: 900; -webkit-text-stroke: 0.8px var(--stroke-color); text-shadow: 0 1px 6px var(--shadow-color), 0 0 8px var(--shadow-color); }
-    .sel-item-pct { font-size: 20px; font-weight: 900; flex-shrink: 0; -webkit-text-stroke: 0.7px var(--stroke-color); text-shadow: 0 1px 6px var(--shadow-color), 0 0 8px var(--shadow-color); }
-    .sel-item-limit { font-size: 11px; color: var(--text-muted); }
-    .sel-empty {
-      display: flex; flex-direction: column; align-items: center;
-      padding: 60px 20px; gap: 12px; text-align: center;
-    }
-    .sel-empty svg { color: var(--text-muted); opacity: 0.3; }
-    .sel-empty p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
-
-    /* ── Bank Cards Grid ── */
-    .bank-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
-    .bank-card {
-      background: var(--bg-card); border: 2px solid var(--border);
-      border-radius: var(--radius); overflow: hidden;
-      transition: all 0.2s ease;
-    }
-    .bank-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-    .bank-card.empty-alert { border-color: color-mix(in srgb, #eab308 50%, var(--border)); }
-    .bank-card.empty-alert:hover { border-color: color-mix(in srgb, #eab308 70%, var(--border)); }
-    .bank-card.selected { border-color: color-mix(in srgb, var(--bank-color, var(--green)) 40%, transparent); }
-    .bank-card.expanded { border-color: var(--bank-color, var(--green)); box-shadow: 0 0 20px color-mix(in srgb, var(--bank-color, var(--green)) 15%, transparent); }
-    .bc-header { padding: 14px 16px; }
-    .bc-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-    .bc-info { min-width: 0; flex: 1; display: flex; align-items: flex-start; gap: 12px; }
-    .bc-text { min-width: 0; flex: 1; }
-    .bc-name { font-size: 16px; font-weight: 600; line-height: 26px; }
-    .bc-website {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 12px; color: var(--text-muted); text-decoration: none;
-      margin-top: 3px; transition: color 0.15s;
-    }
-    .bc-website:visited { color: var(--text-muted); }
-    .bc-website:hover { color: var(--bank-color, var(--green)); }
-    .bc-website svg { width: 12px; height: 12px; }
-    .bc-desc { font-size: 12px; color: var(--text-muted); margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .bc-count { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-    .bc-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-    .bc-reorder { display: flex; flex-direction: column; gap: 1px; align-self: center; margin-right: 6px; flex-shrink: 0; }
-    .bc-reorder-btn {
-      width: 20px; height: 18px; border: none; background: transparent;
-      color: var(--text-muted); cursor: pointer; display: flex;
-      align-items: center; justify-content: center; padding: 0;
-      border-radius: 4px; transition: all 0.15s; font-family: var(--font);
-    }
-    .bc-reorder-btn:hover { background: var(--hover-strong); color: var(--text); }
-    .bc-reorder-btn:disabled { opacity: 0.15; cursor: not-allowed; }
-    .bc-reorder-btn svg { width: 14px; height: 14px; }
-    .badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 3px 8px; border-radius: 6px;
-      font-size: 11px; font-weight: 600; color: #fff;
-    }
-    .badge svg { width: 13px; height: 13px; }
-    .rec-badge {
-      background: #eab308; color: #000; font-size: 10px; font-weight: 700;
-      padding: 1px 6px; border-radius: 4px; margin-left: 6px;
-      letter-spacing: 0.5px;
-    }
-
-    /* ── Categories ── */
-    .categories { padding: 0 16px 16px; border-top: 1px solid var(--border); margin-top: 10px; padding-top: 14px; }
-    .categories-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .categories-month { font-size: 14px; font-weight: 500; }
-    .categories-list { max-height: 65vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-
-    /* ── Category Row (larger for touch) ── */
-    .cat-row {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 14px; border-radius: var(--radius-sm);
-      border: 1px solid var(--border); transition: all 0.15s ease;
-      cursor: pointer;
-    }
-    .cat-row:hover { border-color: var(--border-hi); }
-    .cat-row.checked {
-      background: color-mix(in srgb, var(--bank-color, var(--green)) 6%, transparent);
-      border-color: color-mix(in srgb, var(--bank-color, var(--green)) 35%, transparent);
-    }
-    .cat-row.recommended {
-      border-left: 3px solid #eab308;
-    }
-    .cat-row.recommended.checked {
-      border-left: 3px solid #eab308;
-    }
-    .cat-checkbox {
-      width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
-      border: 2px solid var(--border-hi); display: flex;
-      align-items: center; justify-content: center; transition: all 0.15s;
-    }
-    .cat-row.checked .cat-checkbox {
-      background: var(--bank-color, var(--green)); border-color: var(--bank-color, var(--green));
-    }
-    .cat-checkbox svg { width: 16px; height: 16px; color: #fff; opacity: 0; }
-    .cat-row.checked .cat-checkbox svg { opacity: 1; }
-    .cat-info { flex: 1; min-width: 0; }
-    .cat-name { font-size: 15px; font-weight: 500; color: var(--text-muted); transition: color 0.15s; }
-    .cat-row.checked .cat-name { color: var(--text); }
-    .cat-details { display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap; }
-    .cat-percent { font-size: 16px; font-weight: 700; }
-    .cat-percent.high { color: var(--green); }
-    .cat-percent.mid { color: #4ade80; }
-    .cat-percent.low { color: var(--lime); }
-    .cat-percent.lowest { color: var(--yellow); }
-    .cat-limit {
-      font-size: 11px; color: var(--text-muted);
-      background: var(--tag-bg); padding: 2px 8px; border-radius: 4px;
-    }
-    .cat-note-toggle {
-      padding: 6px; width: 34px; height: 34px; border: none;
-      background: transparent; color: var(--text-muted); cursor: pointer;
-      border-radius: 6px; display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s; flex-shrink: 0;
-    }
-    .cat-note-toggle:hover { background: var(--tag-bg); }
-    .cat-note-toggle svg { width: 18px; height: 18px; }
-    .cat-notes-box { padding: 4px 14px 12px 50px; display: flex; flex-direction: column; gap: 4px; }
-    .cat-note-text { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
-    .cat-note-link {
-      font-size: 12px; color: var(--bank-color, var(--green)); text-decoration: none;
-      display: inline-flex; align-items: center; gap: 4px;
-    }
-    .cat-note-link:hover { text-decoration: underline; }
-    .cat-note-link svg { width: 12px; height: 12px; }
-
-    /* ── Category Limit ── */
-    .cat-row.disabled { opacity: 0.4; cursor: not-allowed; }
-    .cat-row.disabled:hover { border-color: var(--border); }
-    .cat-row.disabled .cat-checkbox { border-style: dashed; }
-    .cat-limit-bar {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 13px; color: var(--text-sec); margin-bottom: 10px;
-      padding: 8px 12px; border-radius: var(--radius-sm);
-      background: var(--hover-soft); border: 1px solid var(--border);
-    }
-    .cat-limit-bar.full { border-color: var(--yellow); background: rgba(234,179,8,0.06); }
-    .cat-limit-bar.over { border-color: var(--red); background: rgba(239,68,68,0.06); }
-    .cat-limit-controls { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-    .cat-limit-btn {
-      width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
-      background: transparent; color: var(--text-sec); cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: 600; transition: all 0.15s;
-      font-family: var(--font); padding: 0; line-height: 1;
-    }
-    .cat-limit-btn:hover { background: var(--hover); border-color: var(--border-hi); color: var(--text); }
-    .cat-limit-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-    .cat-limit-value {
-      font-weight: 700; min-width: 20px; text-align: center;
-      font-size: 14px; color: var(--text);
-    }
-    .cat-limit-label { font-size: 11px; color: var(--text-muted); }
-    .cat-limit-progress {
-      flex: 1; height: 4px; border-radius: 2px;
-      background: var(--progress-bg); overflow: hidden;
-    }
-    .cat-limit-progress-fill { height: 100%; border-radius: 2px; transition: width 0.2s, background 0.2s; }
-    .cat-limit-progress-fill.ok { background: var(--green); }
-    .cat-limit-progress-fill.full { background: var(--yellow); }
-    .cat-limit-progress-fill.over { background: var(--red); }
-
-    /* ── Dop Categories ── */
-    .dop-tag {
-      display: inline-flex; align-items: center;
-      font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
-      color: var(--text-sec);
-      background: var(--tag-bg);
-      padding: 1px 5px; border-radius: 4px; margin-left: 4px;
-    }
-    .dop-section-title {
-      font-size: 13px; font-weight: 600; color: var(--text-sec); margin-bottom: 8px;
-    }
-    .dop-new-row {
-      display: flex; gap: 8px; align-items: center;
-      margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
-    }
-    .dop-input {
-      padding: 8px 12px; border-radius: var(--radius-sm);
-      border: 1px solid var(--border); background: var(--bg-input);
-      color: var(--text); font-size: 14px; font-family: var(--font); outline: none;
-    }
-    .dop-input:focus { border-color: var(--green); }
-    .dop-input::placeholder { color: var(--text-muted); }
-    .dop-cat-item {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);
-    }
-    .dop-cat-item:hover { border-color: var(--border-hi); }
-    .dop-cat-name { flex: 1; font-size: 14px; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dop-cat-base { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
-    .dop-cat-input {
-      width: 52px; padding: 6px 8px; border-radius: 6px;
-      border: 1px solid var(--border); background: var(--bg-input);
-      color: var(--text); font-size: 13px; font-family: var(--font);
-      text-align: center; outline: none;
-    }
-    .dop-cat-input:focus { border-color: var(--green); }
-    .dop-cat-input::placeholder { color: var(--text-muted); }
-    .dop-cat-total { font-size: 14px; font-weight: 700; color: var(--green); white-space: nowrap; }
-    .dop-cat-remove {
-      width: 26px; height: 26px; border-radius: 6px; border: none;
-      background: transparent; color: var(--red); cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-family: var(--font); padding: 0; flex-shrink: 0;
-    }
-    .dop-cat-remove:hover { background: rgba(239,68,68,0.1); }
-    .dop-custom-item {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 12px; border-radius: var(--radius-sm);
-      border: 1px solid color-mix(in srgb, var(--green) 30%, var(--border));
-      background: color-mix(in srgb, var(--green) 3%, transparent);
-    }
-    .dop-custom-name { flex: 1; font-size: 14px; font-weight: 500; }
-    .dop-custom-pct { font-size: 14px; font-weight: 700; color: var(--green); }
-    .dop-excl-toggle {
-      display: flex; align-items: center; gap: 4px; cursor: pointer;
-      font-size: 11px; color: var(--text-muted); white-space: nowrap;
-      padding: 3px 6px; border-radius: 4px; border: none; background: transparent;
-      font-family: var(--font); transition: all 0.15s; flex-shrink: 0;
-    }
-    .dop-excl-toggle:hover { color: var(--text-sec); background: var(--hover-soft); }
-    .dop-excl-toggle.active { color: var(--green); }
-    .dop-excl-toggle svg { width: 13px; height: 13px; }
-    .cat-row.excluded .cat-name::after {
-      content: '∞';
-      font-size: 10px; font-weight: 700; color: var(--text-muted);
-      margin-left: 4px;
-    }
-
-    /* ── Empty ── */
-    .empty {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 80px 20px; gap: 16px; text-align: center;
-    }
-    .empty svg { color: var(--text-muted); opacity: 0.3; }
-    .empty p { font-size: 14px; color: var(--text-muted); }
-
-    /* ── Modals ── */
-    .overlay {
-      position: fixed; inset: 0; z-index: 100;
-      background: var(--bg-overlay); display: flex;
-      align-items: center; justify-content: center; padding: 16px;
-      animation: fadeIn 0.15s ease;
-    }
-    .overlay.hidden { display: none; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .modal {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: var(--radius); width: 100%; max-width: 440px;
-      max-height: 90vh; overflow-y: auto;
-      animation: slideUp 0.2s ease;
-    }
-    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    .modal-header { padding: 20px 20px 0; }
-    .modal-title { font-size: 17px; font-weight: 600; }
-    .modal-dop-badge {
-      display: inline-block; font-size: 11px; font-weight: 600; color: #eab308;
-      background: rgba(234,179,8,0.1); padding: 1px 6px; border-radius: 4px; margin-left: 6px;
-    }
-    .modal-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-    .modal-body { padding: 16px 20px; }
-    .modal-footer { padding: 12px 20px 20px; display: flex; justify-content: flex-end; gap: 8px; }
-
-    .tabs {
-      display: flex; gap: 4px; background: var(--hover-soft);
-      border-radius: var(--radius-sm); padding: 4px; margin-bottom: 12px;
-    }
-    .tab {
-      flex: 1; padding: 10px; border: none; border-radius: 6px;
-      font-size: 13px; font-weight: 500; cursor: pointer;
-      background: transparent; color: var(--text-muted);
-      transition: all 0.15s; display: flex; align-items: center;
-      justify-content: center; gap: 6px; font-family: var(--font);
-    }
-    .tab:hover { color: var(--text); }
-    .tab.active { background: var(--green); color: #fff; }
-    .tab svg { width: 16px; height: 16px; }
-
-    .upload-zone {
-      border: 2px dashed var(--border); border-radius: var(--radius-sm);
-      padding: 32px 16px; text-align: center; cursor: pointer;
-      transition: border-color 0.15s;
-    }
-    .upload-zone:hover { border-color: rgba(34,197,94,0.5); }
-    .upload-zone svg { margin: 0 auto 8px; color: var(--text-muted); }
-    .upload-zone p { font-size: 13px; color: var(--text-muted); }
-
-    .textarea {
-      width: 100%; min-height: 150px; padding: 12px;
-      background: var(--bg-input); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); color: var(--text);
-      font-size: 13px; font-family: 'SF Mono', Monaco, monospace;
-      resize: vertical; outline: none;
-    }
-    .textarea:focus { border-color: var(--green); }
-    .textarea::placeholder { color: var(--text-muted); }
-    .error-text { font-size: 13px; color: var(--red); margin-top: 8px; }
-
-    .import-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sec); margin-bottom: 6px; }
-    .import-input {
-      width: 100%; padding: 10px 12px;
-      background: var(--bg-input); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); color: var(--text);
-      font-size: 15px; font-family: var(--font); outline: none;
-      transition: border-color 0.15s;
-    }
-    .import-input:focus { border-color: var(--green); }
-    .import-input.import-input-warn { border-color: #f59e0b; }
-    .import-input.import-input-warn:focus { border-color: #d97706; }
-    .import-input::placeholder { color: var(--text-muted); }
-
-    .action-card {
-      display: flex; align-items: flex-start; gap: 12px;
-      padding: 14px; border-radius: var(--radius-sm);
-      border: 1px solid var(--border); cursor: pointer;
-      text-align: left; width: 100%; background: transparent;
-      color: var(--text); transition: all 0.15s; font-family: var(--font);
-    }
-    .action-card:hover { border-color: var(--border-hi); background: var(--hover-faint); }
-    .action-card svg { flex-shrink: 0; margin-top: 2px; }
-    .action-card-title { font-size: 14px; font-weight: 500; }
-    .action-card-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-
-    /* ── Tab Panels ── */
-    .panel { display: none; }
-    .panel.active { display: block; }
-
-    /* ── Tab Swipe Animation ── */
-    .main { transition: opacity 0.15s ease, transform 0.15s ease; }
-    .main.slide-out-left { opacity: 0; transform: translateX(-30px); }
-    .main.slide-out-right { opacity: 0; transform: translateX(30px); }
-
-    /* ── Responsive ── */
-    @media (min-width: 641px) {
-      .bank-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
-      .bank-grid.has-expanded { grid-template-columns: 1fr; }
-      .sel-item { padding: 12px 16px; }
-    }
-    @media (max-width: 480px) {
-      .header-title { font-size: 16px; }
-      .bc-name { font-size: 15px; }
-      .btn-icon { width: 36px; height: 36px; padding: 6px; }
-    }
-
-    /* ── Screenshot Help Modal ── */
-    .screenshot-steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-    .screenshot-step {
-      display: flex; gap: 12px; align-items: flex-start;
-      padding: 12px; border-radius: var(--radius-sm);
-      border: 1px solid var(--border); background: var(--hover-faint);
-    }
-    .screenshot-step-num {
-      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
-      background: var(--green); color: #fff; font-size: 13px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .screenshot-step-text { font-size: 13px; line-height: 1.5; color: var(--text-sec); }
-    .screenshot-step-text strong { color: var(--text); }
-    .screenshot-prompt-box {
-      position: relative; margin-bottom: 12px;
-    }
-    .screenshot-prompt-label {
-      font-size: 12px; font-weight: 600; color: var(--text-sec); margin-bottom: 6px;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .screenshot-prompt-text {
-      width: 100%; min-height: 120px; padding: 12px;
-      background: rgba(0,0,0,0.2); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); color: var(--text);
-      font-size: 12px; font-family: 'SF Mono', Monaco, 'Courier New', monospace;
-      line-height: 1.5; resize: none; outline: none;
-    }
-    html.light .screenshot-prompt-text { background: rgba(0,0,0,0.04); }
-    .screenshot-copy-btn {
-      position: absolute; top: 28px; right: 8px;
-      padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
-      background: var(--bg-card); color: var(--text-sec); cursor: pointer;
-      font-size: 11px; font-weight: 500; display: flex; align-items: center; gap: 4px;
-      font-family: var(--font); transition: all 0.15s;
-    }
-    .screenshot-copy-btn:hover { border-color: var(--green); color: var(--green); }
-    .screenshot-copy-btn svg { width: 14px; height: 14px; }
-    .screenshot-links {
-      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;
-    }
-    .screenshot-link {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 8px 12px; border-radius: var(--radius-sm);
-      border: 1px solid var(--border); background: transparent;
-      color: var(--text); font-size: 13px; text-decoration: none;
-      cursor: pointer; font-family: var(--font); transition: all 0.15s;
-    }
-    .screenshot-link:hover { border-color: var(--green); color: var(--green); background: rgba(34,197,94,0.05); }
-    .screenshot-link svg { width: 16px; height: 16px; }
-    .screenshot-example-toggle {
-      padding: 6px 0; border: none; background: transparent;
-      color: var(--text-muted); font-size: 12px; cursor: pointer;
-      font-family: var(--font); display: flex; align-items: center; gap: 4px;
-      transition: color 0.15s;
-    }
-    .screenshot-example-toggle:hover { color: var(--text-sec); }
-    .screenshot-example-toggle svg { width: 14px; height: 14px; transition: transform 0.2s; }
-    .screenshot-example-toggle.open svg { transform: rotate(90deg); }
-    .screenshot-example {
-      display: none; margin-top: 8px; padding: 12px;
-      background: rgba(0,0,0,0.2); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); font-size: 11px;
-      font-family: 'SF Mono', Monaco, monospace; line-height: 1.5;
-      color: var(--text-sec); max-height: 200px; overflow-y: auto;
-      white-space: pre-wrap; word-break: break-all;
-    }
-    html.light .screenshot-example { background: rgba(0,0,0,0.03); }
-    .screenshot-example.show { display: block; }
-    .screenshot-divider {
-      height: 1px; background: var(--border); margin: 12px 0;
-    }
-    .help-btn {
-      width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
-      background: transparent; color: var(--text-muted); cursor: pointer;
-      font-size: 14px; font-weight: 700; display: inline-flex;
-      align-items: center; justify-content: center; transition: all 0.15s;
-      font-family: var(--font); padding: 0; flex-shrink: 0;
-    }
-    .help-btn { background: #eab308; color: #000; border-color: #eab308; font-weight: 800; }
-    .help-btn:hover { background: #ca8a04; border-color: #ca8a04; color: #000; }
-
-    /* ── Toast ── */
-    .toast {
-      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-      background: var(--bg-card); border: 1px solid var(--border);
-      color: var(--text); padding: 10px 20px; border-radius: var(--radius-sm);
-      font-size: 13px; z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      animation: toastIn 0.2s ease, toastOut 0.3s ease 2.7s forwards;
-      pointer-events: none; white-space: nowrap;
-    }
-    @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
-
-    /* ── Monthly Reminder Banner ── */
-    .reminder-banner {
-      display: none;
-      align-items: center; gap: 12px;
-      padding: 12px 16px;
-      background: rgba(234,179,8,0.08);
-      border-bottom: 1px solid rgba(234,179,8,0.25);
-      animation: fadeIn 0.3s ease;
-    }
-    .reminder-banner.show { display: flex; }
-    .reminder-icon {
-      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-      background: #eab308; color: #000;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .reminder-icon svg { width: 20px; height: 20px; }
-    .reminder-text { flex: 1; min-width: 0; }
-    .reminder-title { font-size: 14px; font-weight: 600; color: var(--yellow); }
-    .reminder-desc { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
-    .reminder-actions { display: flex; gap: 6px; flex-shrink: 0; }
-    .reminder-close {
-      width: 28px; height: 28px; border-radius: 6px; border: none;
-      background: transparent; color: var(--text-muted); cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-family: var(--font); padding: 0;
-    }
-    .reminder-close:hover { background: var(--tag-bg); color: var(--text); }
-
-    /* ── Onboarding ── */
-    .onboarding {
-      position: fixed; inset: 0; z-index: 300;
-      background: var(--bg); display: flex; flex-direction: column;
-      align-items: center; justify-content: center; padding: 24px;
-    }
-    .onboarding.hidden { display: none; }
-    .onboarding-slides { width: 100%; max-width: 360px; position: relative; overflow: hidden; }
-    .onboarding-slide {
-      display: none; flex-direction: column; align-items: center;
-      text-align: center; gap: 20px; padding: 20px 0;
-      animation: slideUp 0.3s ease;
-    }
-    .onboarding-slide.active { display: flex; }
-    .onboarding-icon {
-      width: 120px; height: 120px; border-radius: 24px;
-      background: rgba(34,197,94,0.1); display: flex;
-      align-items: center; justify-content: center;
-    }
-    .onboarding-icon svg { width: 56px; height: 56px; color: var(--green); }
-    .onboarding-title { font-size: 22px; font-weight: 700; }
-    .onboarding-desc { font-size: 15px; color: var(--text-sec); line-height: 1.6; max-width: 300px; }
-    .onboarding-dots { display: flex; gap: 8px; margin-top: 32px; }
-    .onboarding-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--border); transition: all 0.3s;
-    }
-    .onboarding-dot.active { width: 24px; border-radius: 4px; background: var(--green); }
-    .onboarding-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 360px; margin-top: 24px; }
-    .onboarding-skip {
-      background: none; border: none; color: var(--text-muted);
-      font-size: 14px; cursor: pointer; padding: 8px;
-      font-family: var(--font); transition: color 0.15s;
-    }
-    .onboarding-skip:hover { color: var(--text); }
-
-    /* ── Help Modal ── */
-    .help-tabs { display: flex; gap: 4px; background: var(--hover-soft); border-radius: var(--radius-sm); padding: 3px; margin-bottom: 14px; }
-    .help-tab {
-      flex: 1; padding: 8px 6px; border: none; border-radius: 6px;
-      font-size: 12px; font-weight: 500; cursor: pointer;
-      background: transparent; color: var(--text-muted);
-      transition: all 0.15s; font-family: var(--font);
-    }
-    .help-tab:hover { color: var(--text); }
-    .help-tab.active { background: var(--green); color: #fff; }
-    .help-content { font-size: 13px; line-height: 1.7; color: var(--text-sec); }
-    .help-content h4 { font-size: 14px; font-weight: 600; color: var(--text); margin: 14px 0 6px; }
-    .help-content h4:first-child { margin-top: 0; }
-    .help-content p { margin: 4px 0; }
-    .help-content ul { margin: 4px 0 8px 18px; }
-    .help-content li { margin: 3px 0; }
-    .help-content kbd {
-      display: inline-block; padding: 1px 5px; border-radius: 4px;
-      background: var(--tag-bg); font-size: 12px; font-family: var(--font);
-      border: 1px solid var(--border); color: var(--text);
-    }
-    .help-content strong { color: var(--text); }
-    .help-content .help-note {
-      margin-top: 12px; padding: 8px 10px; border-radius: var(--radius-sm);
-      background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.2);
-      font-size: 12px; color: var(--text-sec);
-    }
-    .help-panel { display: none; }
-    .help-panel.active { display: block; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -709,7 +53,10 @@
   <!-- ── Header ── -->
   <header class="header">
     <div class="header-row">
-      <div class="header-title" id="headerTitle" onclick="easterEggTap()">Кэшбэк <span style="color:#eab308;font-size:12px;font-weight:700;vertical-align:super">BETA</span></div>
+      <div style="position:relative;display:inline-flex;align-items:center">
+        <div class="header-title" id="headerTitle" onclick="easterEggTap()">Кэшбэк Ассистент</div>
+        <div class="header-badge" id="headerBadge" style="display:none" onclick="event.stopPropagation();debugBadge()"></div>
+      </div>
       <div class="header-actions">
         <button class="btn btn-icon" id="installBtn" onclick="installPwa()" title="Добавить на главный экран" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1010,6 +357,20 @@
     </div>
   </div>
 
+  <!-- ── Changelog Modal ── -->
+  <div class="overlay hidden" id="changelogModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">🚀 Приложение обновлено</div>
+        <div class="modal-desc" id="changelogDesc"></div>
+      </div>
+      <div class="modal-body" id="changelogBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeChangelogModal()" style="width:100%">Понятно</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Help Modal ── -->
   <div class="overlay hidden" id="helpModal">
     <div class="modal">
@@ -1052,9 +413,16 @@
               <li><strong>Доп. %</strong> — добавить бонусный % к существующей категории банка (показывается как «доп. +X%»)</li>
             </ul>
 
+            <h4>Рамки карточек банков</h4>
+            <ul>
+              <li><span style="display:inline-block;width:12px;height:12px;border:2px solid color-mix(in srgb, #eab308 50%, var(--border));border-radius:2px;vertical-align:middle;margin-right:4px"></span> <strong>Жёлто-золотая рамка</strong> — категории не выбраны. Нажмите «Выбрать» и отметьте нужные.</li>
+              <li><span style="display:inline-block;width:12px;height:12px;border:2px solid color-mix(in srgb, var(--green) 40%, transparent);border-radius:2px;vertical-align:middle;margin-right:4px"></span> <strong>Цветная рамка</strong> — есть выбранные категории.</li>
+              <li><span style="display:inline-block;width:12px;height:12px;border:2px solid var(--green);border-radius:2px;vertical-align:middle;margin-right:4px"></span> <strong>Яркая рамка</strong> — список категорий раскрыт.</li>
+            </ul>
+
             <h4>Кнопки в карточке банка</h4>
             <ul>
-              <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px;color:var(--green)"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span> <strong>Рекомендации</strong> — алгоритм автоматически выбирает категории с максимальным %, учитывая <strong>все</strong> ваши банки. Одинаковые категории (АЗС / Топливо) не дублируются.</li>
+              <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px;color:#eab308"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span> <strong>Рекомендации</strong> — алгоритм автоматически выбирает категории с максимальным %, учитывая <strong>все</strong> ваши банки. Рекомендуемые категории выделены жёлтой полоской слева и жёлтой молнией.</li>
               <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span> <strong>Прошлый</strong> — скопировать выбор с прошлого месяца</li>
               <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></span> <strong>Месяц</strong> — перейти к следующему месяцу (очищает выбор)</li>
               <li><span style="display:inline-flex;align-items:center;vertical-align:middle;width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:-6px"><polyline points="6 9 12 15 18 9"/></svg></span> <strong>↑ ↓</strong> — переместить банк выше/ниже в списке</li>
@@ -1116,6 +484,18 @@
   </div>
 
 <script>
+// ─── Changelog (declared early — used by easter egg & SW handler) ─────────────────
+const CHANGELOG_KEY = 'cashback-changelog-seen';
+const CHANGELOG = {
+  '2025.04.27': [
+    'Описание карты теперь отображается на всю ширину внизу карточки банка',
+    'Попап «Что нового» при обновлении приложения',
+    'Импорт COIN по URL-ссылке',
+    'Справка: импорт из скриншота через AI (DeepSeek, ChatGPT, Gemini)',
+    'Новая вкладка импорта — URL',
+  ]
+};
+
 // ─── Easter Egg: tap title 7 times to show version ─────────────────────────────────
 let _tapCount = 0, _tapTimer = null;
 function easterEggTap() {
@@ -1124,16 +504,8 @@ function easterEggTap() {
   _tapTimer = setTimeout(() => { _tapCount = 0; }, 1500);
   if (_tapCount >= 7) {
     _tapCount = 0;
-    // Get SW cache version
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage('getVersion');
-    }
-    navigator.serviceWorker.addEventListener('message', function handler(e) {
-      if (e.data && e.data.version) {
-        showToast('⚙ V' + e.data.version);
-        navigator.serviceWorker.removeEventListener('message', handler);
-      }
-    });
+    const seen = localStorage.getItem(CHANGELOG_KEY);
+    showToast('⚙ V' + (seen || '?'));
   }
 }
 
@@ -1198,6 +570,33 @@ function updateInstallBtn() {
   }
 }
 
+// ─── Changelog Modal ───────────────────────────────────────────────────────────────
+function openChangelogModal(version) {
+  const changes = CHANGELOG[version];
+  if (!changes || changes.length === 0) return;
+  document.getElementById('changelogDesc').textContent = 'Версия ' + version;
+  const body = document.getElementById('changelogBody');
+  let html = '<div class="changelog-version">Что изменилось:</div>';
+  html += '<ul class="changelog-list">';
+  for (const item of changes) {
+    html += '<li>' + escHtml(item) + '</li>';
+  }
+  html += '</ul>';
+  body.innerHTML = html;
+  document.getElementById('changelogModal').classList.remove('hidden');
+  localStorage.setItem(CHANGELOG_KEY, version);
+}
+
+function closeChangelogModal() {
+  document.getElementById('changelogModal').classList.add('hidden');
+}
+
+function checkChangelog() {
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage('getVersion');
+  }
+}
+
 // ─── Help Modal ───────────────────────────────────────────────────────────────────
 function openHelpModal() {
   document.getElementById('helpModal').classList.remove('hidden');
@@ -1217,7 +616,7 @@ function switchHelpTab(tab, btn) {
 }
 
 // ─── Theme Toggle ────────────────────────────────────────────────────────────────
-const THEME_KEY = 'cashback-beta-theme';
+const THEME_KEY = 'cashback-theme';
 
 function toggleTheme() {
   const isLight = document.documentElement.classList.toggle('light');
@@ -1243,23 +642,34 @@ function initTheme() {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').then(reg => {
     // Auto-update when new version is available
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'activated') {
-          // Reload to get new version (data is in localStorage, safe)
-          window.location.reload();
-        }
-      });
-    });
     // If there's a waiting update from previous session, activate it
     if (reg.waiting) {
       reg.waiting.postMessage('skipWaiting');
     }
+    // Reload once when new SW takes control
     reg.addEventListener('controllerchange', () => {
       window.location.reload();
     });
+    // Check changelog only when SW is stable (no pending update)
+    if (!reg.installing && !reg.waiting) {
+      checkChangelog();
+    }
   }).catch(() => {});
+}
+
+// ─── SW message handler for changelog & version ─────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', function handler(e) {
+    if (e.data && e.data.version) {
+      const ver = e.data.version;
+      const seen = localStorage.getItem(CHANGELOG_KEY);
+      if (seen !== ver && CHANGELOG[ver]) {
+        openChangelogModal(ver);
+      } else {
+        localStorage.setItem(CHANGELOG_KEY, ver);
+      }
+    }
+  });
 }
 
 // ─── Embedded COIN Data ─────────────────────────────────────────────────────────
@@ -1318,7 +728,7 @@ function bankColorStyle(bankName) {
 }
 
 // ─── State ──────────────────────────────────────────────────────────────────────
-const STORAGE_KEY = 'cashback-beta-app-data';
+const STORAGE_KEY = 'cashback-app-data';
 const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 let banks = [];
 let expandedBankId = null;
@@ -1330,7 +740,7 @@ let pendingImportCoinData = null; // parsed COIN data waiting for bank name conf
 function genId() { return Date.now().toString(36) + Math.random().toString(36).substring(2); }
 function getCurrentMonth() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 function formatMonth(m) { const [y,mo] = m.split('-'); return MONTH_NAMES[parseInt(mo)-1] + ' ' + y; }
-const BACKUP_KEY = 'cashback-beta-app-backup';
+const BACKUP_KEY = 'cashback-app-backup';
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ banks }));
   // Auto-backup: save selections separately for recovery
@@ -1345,7 +755,7 @@ function saveData() {
       };
     }
     // Save history for current month
-    const histKey = 'cashback-beta-history-' + bank.coinData.provider.name + '-' + bank.month;
+    const histKey = 'cashback-history-' + bank.coinData.provider.name + '-' + bank.month;
     const histData = {
       s: bank.selectedCategories,
       e: bank.customExtras,
@@ -1880,32 +1290,29 @@ function renderBanks(app) {
     html += '<div class="' + cardCls + '" style="--bank-color:' + bc.color + '">';
     const bankIdx = banks.indexOf(bank);
     const bankMax = getMaxCategories(bank);
-    html += '<div class="bc-header"><div class="bc-row">';
-    html += '<div class="bc-reorder">';
+    html += '<div class="bc-header"><table class="bc-table"><tr>';
+    html += '<td class="bc-cell-reorder"><div class="bc-reorder">';
     html += '<button class="bc-reorder-btn" onclick="event.stopPropagation();moveBank(\'' + bank.id + '\',-1)" title="Выше"' + (bankIdx === 0 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>';
     html += '<button class="bc-reorder-btn" onclick="event.stopPropagation();moveBank(\'' + bank.id + '\',1)" title="Ниже"' + (bankIdx === banks.length - 1 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>';
-    html += '</div>';
-    html += '<div class="bc-info">';
-    html += renderCardIcon(bank.coinData.provider.name);
-    html += '<div class="bc-text">';
+    html += '</div></td>';
+    html += '<td class="bc-cell-icon">' + renderCardIcon(bank.coinData.provider.name) + '</td>';
+    html += '<td class="bc-cell-text"><div class="bc-text">';
     html += '<div class="bc-name">' + escHtml(bank.coinData.provider.name) + '</div>';
     if (bank.coinData.provider.website) {
       html += '<a href="' + escHtml(bank.coinData.provider.website) + '" target="_blank" rel="noopener noreferrer" class="bc-website"><span style="width:12px;height:12px">' + ICONS.extLink + '</span><span>' + escHtml(bank.coinData.provider.website.replace(/^https?:\/\//, '')) + '</span></a>';
     }
-    if (bank.coinData.provider.notes) {
-      html += '<div class="bc-desc">' + escHtml(bank.coinData.provider.notes) + '</div>';
-    }
-    html += '</div></div><div class="bc-actions">';
+    html += '</div></td>';
+    html += '<td class="bc-cell-actions"><div style="display:flex;align-items:flex-start;gap:4px;justify-content:flex-end">';
     html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
-    if (selCount > 0) {
-      html += '<span class="badge" style="background:' + bc.color + '"><span style="width:13px;height:13px">' + ICONS.check + '</span>' + selCount + '</span>';
-    }
-    html += '<div style="display:flex;align-items:center;gap:4px">';
     html += '<button class="btn' + (isExp ? ' btn-primary' : ' btn-outline') + ' btn-sm" onclick="toggleExpand(\'' + bank.id + '\')" style="gap:5px;min-height:36px;padding:6px 12px;font-size:13px"><span style="width:16px;height:16px">' + (isExp ? ICONS.chevUp : ICONS.chevDown) + '</span>' + (isExp ? 'Свернуть' : 'Выбрать') + '</button>';
-    html += '<button class="btn btn-sm btn-danger btn-icon" onclick="deleteBank(\'' + bank.id + '\')" title="Удалить" style="min-height:36px"><span style="width:16px;height:16px">' + ICONS.trash + '</span></button>';
-    html += '</div></div></div></div>';
     if (selCount > 0) {
-      html += '<div style="padding:0 16px 8px;font-size:12px;color:var(--text-muted)">' + selCount + ' выбрано' + (bankMax > 0 ? ' (лимит ' + bankMax + ')' : '') + '</div>';
+      html += '<span class="badge" style="background:' + bc.color + '">' + selCount + '/' + (bankMax > 0 ? bankMax : '∞') + '</span>';
+    }
+    html += '</div>';
+    html += '<button class="btn btn-sm btn-danger btn-icon" onclick="deleteBank(\'' + bank.id + '\')" title="Удалить" style="min-height:36px"><span style="width:16px;height:16px">' + ICONS.trash + '</span></button>';
+    html += '</div></td></tr></table></div>';
+    if (bank.coinData.provider.notes) {
+      html += '<div class="bc-desc-footer">' + escHtml(bank.coinData.provider.notes) + '</div>';
     }
     html += '</div>';
 
@@ -2048,7 +1455,7 @@ function moveBank(bankId, direction) {
 }
 
 // ─── Onboarding ──────────────────────────────────────────────────────────────────
-const ONBOARDING_KEY = 'cashback-beta-onboarded';
+const ONBOARDING_KEY = 'cashback-onboarded';
 let onboardingSlide = 0;
 
 function showOnboarding() {
@@ -2666,16 +2073,25 @@ function renderMCC(app) {
   html += '<span style="font-size:11px;color:var(--text-muted)">' + countMCCTotal() + ' кодов</span>';
   html += '</div>';
   html += '<div class="dop-new-row" style="margin-bottom:0;padding-bottom:12px;border-bottom:none">';
-  html += '<input type="text" class="dop-input" placeholder="Поиск по коду или описанию..." style="flex:1;min-width:0" value="' + escHtml(mccSearchQuery) + '" oninput="mccSearch(this.value)" onfocus="this.select()">';
+  html += '<input id="mcc-search-input" type="text" class="dop-input" placeholder="Поиск по коду или описанию..." style="flex:1;min-width:0" value="' + escHtml(mccSearchQuery) + '" oninput="mccSearchLive(this)" onfocus="this.select()">';
   html += '</div>';
-  html += '<div style="display:flex;flex-direction:column;gap:8px">';
+  html += '<div id="mcc-list">';
+  html += renderMCCList();
+  html += '</div></div>';
+  app.innerHTML = html;
+}
+
+function renderMCCList() {
+  let html = '<div style="display:flex;flex-direction:column;gap:8px">';
   const query = mccSearchQuery.toLowerCase().trim();
   const isSearching = query.length > 0;
+  let hasResults = false;
   for (const group of MCC_DATA) {
     const filtered = query
       ? group.codes.filter(c => String(c[0]).includes(query) || c[1].toLowerCase().includes(query))
       : group.codes;
     if (isSearching && filtered.length === 0) continue;
+    hasResults = hasResults || filtered.length > 0;
     const isExpanded = isSearching || mccExpandedGroups.has(group.group);
     html += '<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">';
     html += '<div onclick="toggleMCCGroup(\'' + escHtml(group.group).replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:var(--bg-card);border-bottom:' + (isExpanded ? '1px solid var(--border)' : 'none') + ';transition:background 0.15s">';
@@ -2696,11 +2112,11 @@ function renderMCC(app) {
     }
     html += '</div>';
   }
-  if (isSearching && html.indexOf('mcc-row') === -1 && html.indexOf('monospace') === -1) {
+  if (isSearching && !hasResults) {
     html = '<div class="empty" style="padding:40px 20px"><div style="width:48px;height:48px">' + ICONS.book + '</div><p>Ничего не найдено</p></div>';
   }
-  html += '</div></div>';
-  app.innerHTML = html;
+  html += '</div>';
+  return html;
 }
 
 function countMCCTotal() {
@@ -2709,9 +2125,10 @@ function countMCCTotal() {
   return total;
 }
 
-function mccSearch(query) {
-  mccSearchQuery = query;
-  render();
+function mccSearchLive(input) {
+  mccSearchQuery = input.value;
+  const list = document.getElementById('mcc-list');
+  if (list) list.innerHTML = renderMCCList();
 }
 
 function toggleMCCGroup(groupName) {
@@ -2760,17 +2177,40 @@ function copyPrevMonth(bankId) {
 
 // ─── Badge API ──────────────────────────────────────────────────────────────────
 function updateBadge() {
-  if (!navigator.setAppBadge) return;
-  const total = banks.reduce((sum, b) => sum + b.selectedCategories.length, 0);
-  if (total > 0) navigator.setAppBadge(total).catch(() => {});
-  else clearBadge();
+  const emptyBanks = banks.filter(b => b.selectedCategories.length === 0).length;
+  // In-app indicator (always works)
+  const el = document.getElementById('headerBadge');
+  if (el) {
+    el.style.display = emptyBanks > 0 ? '' : 'none';
+    el.textContent = emptyBanks;
+  }
+  // System badge (PWA only)
+  if (navigator.setAppBadge) {
+    if (emptyBanks > 0) navigator.setAppBadge(emptyBanks).catch(() => {});
+    else if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
+  }
 }
 function clearBadge() {
+  const el = document.getElementById('headerBadge');
+  if (el) el.style.display = 'none';
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
 }
 
+function debugBadge() {
+  const s = [];
+  s.push('setAppBadge: ' + (navigator.setAppBadge ? 'YES' : 'NO'));
+  s.push('clearAppBadge: ' + (navigator.clearAppBadge ? 'YES' : 'NO'));
+  s.push('display-mode: ' + (window.matchMedia('(display-mode: standalone)').matches ? 'PWA' : 'browser'));
+  const emptyBanks = banks.filter(b => b.selectedCategories.length === 0).length;
+  s.push('empty banks: ' + emptyBanks);
+  if (navigator.setAppBadge) {
+    navigator.setAppBadge(1).then(() => s.push('set(1): OK')).catch(e => s.push('set(1): ' + e.message));
+  }
+  showToast(s.join(' | '));
+}
+
 // ─── Monthly Reminder ──────────────────────────────────────────────────────────
-const REMINDER_DISMISSED_KEY = 'cashback-beta-reminder-dismissed';
+const REMINDER_DISMISSED_KEY = 'cashback-reminder-dismissed';
 
 function checkMonthlyReminder() {
   if (banks.length === 0) return;
