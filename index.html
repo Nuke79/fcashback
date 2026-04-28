@@ -53,7 +53,10 @@
   <!-- ── Header ── -->
   <header class="header">
     <div class="header-row">
-      <div class="header-title" id="headerTitle" onclick="easterEggTap()">Кэшбэк Ассистент</div>
+      <div style="position:relative;display:inline-flex;align-items:center">
+        <div class="header-title" id="headerTitle" onclick="easterEggTap()">Кэшбэк Ассистент</div>
+        <div class="header-badge" id="headerBadge" style="display:none" onclick="event.stopPropagation();debugBadge()"></div>
+      </div>
       <div class="header-actions">
         <button class="btn btn-icon" id="installBtn" onclick="installPwa()" title="Добавить на главный экран" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -2174,13 +2177,36 @@ function copyPrevMonth(bankId) {
 
 // ─── Badge API ──────────────────────────────────────────────────────────────────
 function updateBadge() {
-  if (!navigator.setAppBadge) return;
-  const total = banks.reduce((sum, b) => sum + b.selectedCategories.length, 0);
-  if (total > 0) navigator.setAppBadge(total).catch(() => {});
-  else clearBadge();
+  const emptyBanks = banks.filter(b => b.selectedCategories.length === 0).length;
+  // In-app indicator (always works)
+  const el = document.getElementById('headerBadge');
+  if (el) {
+    el.style.display = emptyBanks > 0 ? '' : 'none';
+    el.textContent = emptyBanks;
+  }
+  // System badge (PWA only)
+  if (navigator.setAppBadge) {
+    if (emptyBanks > 0) navigator.setAppBadge(emptyBanks).catch(() => {});
+    else if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
+  }
 }
 function clearBadge() {
+  const el = document.getElementById('headerBadge');
+  if (el) el.style.display = 'none';
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
+}
+
+function debugBadge() {
+  const s = [];
+  s.push('setAppBadge: ' + (navigator.setAppBadge ? 'YES' : 'NO'));
+  s.push('clearAppBadge: ' + (navigator.clearAppBadge ? 'YES' : 'NO'));
+  s.push('display-mode: ' + (window.matchMedia('(display-mode: standalone)').matches ? 'PWA' : 'browser'));
+  const emptyBanks = banks.filter(b => b.selectedCategories.length === 0).length;
+  s.push('empty banks: ' + emptyBanks);
+  if (navigator.setAppBadge) {
+    navigator.setAppBadge(1).then(() => s.push('set(1): OK')).catch(e => s.push('set(1): ' + e.message));
+  }
+  showToast(s.join(' | '));
 }
 
 // ─── Monthly Reminder ──────────────────────────────────────────────────────────
