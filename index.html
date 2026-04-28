@@ -2197,16 +2197,17 @@ function clearBadge() {
 }
 
 function debugBadge() {
-  const s = [];
-  s.push('setAppBadge: ' + (navigator.setAppBadge ? 'YES' : 'NO'));
-  s.push('clearAppBadge: ' + (navigator.clearAppBadge ? 'YES' : 'NO'));
-  s.push('display-mode: ' + (window.matchMedia('(display-mode: standalone)').matches ? 'PWA' : 'browser'));
+  const mode = window.matchMedia('(display-mode: standalone)').matches ? 'PWA' : 'browser';
   const emptyBanks = banks.filter(b => b.selectedCategories.length === 0).length;
-  s.push('empty banks: ' + emptyBanks);
+  const line1 = 'Badge API: ' + (navigator.setAppBadge ? 'YES' : 'NO') + ' | Mode: ' + mode;
+  const line2 = 'Empty banks: ' + emptyBanks;
+  showToast(line1);
+  setTimeout(() => showToast(line2), 400);
   if (navigator.setAppBadge) {
-    navigator.setAppBadge(1).then(() => s.push('set(1): OK')).catch(e => s.push('set(1): ' + e.message));
+    navigator.setAppBadge(1).then(
+      () => setTimeout(() => showToast('setAppBadge(1): OK'), 800)
+    ).catch(e => setTimeout(() => showToast('setAppBadge(1): ' + e.message), 800));
   }
-  showToast(s.join(' | '));
 }
 
 // ─── Monthly Reminder ──────────────────────────────────────────────────────────
